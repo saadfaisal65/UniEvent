@@ -50,7 +50,13 @@ export default function CreateEventPage() {
 
     // Society State
     const [isAddSocietyOpen, setIsAddSocietyOpen] = useState(false);
-    const [newSocietyName, setNewSocietyName] = useState("");
+    const [newSocietyData, setNewSocietyData] = useState({
+        name: "",
+        description: "",
+        presidentName: "",
+        vicePresidentName: "",
+        convenerName: ""
+    });
     const [isAddingSociety, setIsAddingSociety] = useState(false);
 
     const queryClient = useQueryClient();
@@ -105,22 +111,28 @@ export default function CreateEventPage() {
     };
 
     const handleAddSociety = async () => {
-        if (!newSocietyName.trim()) return;
+        if (!newSocietyData.name.trim() || !newSocietyData.description.trim()) return;
         setIsAddingSociety(true);
         try {
             const newSoc = await createSociety({
-                name: newSocietyName.trim(),
-                description: "New society",
-                presidentName: "",
-                vicePresidentName: "",
-                convenerName: "",
+                name: newSocietyData.name.trim(),
+                description: newSocietyData.description.trim(),
+                presidentName: newSocietyData.presidentName,
+                vicePresidentName: newSocietyData.vicePresidentName,
+                convenerName: newSocietyData.convenerName,
                 university: user?.university || "Global",
                 createdBy: user?.uid
             });
             await queryClient.invalidateQueries({ queryKey: ['societies'] });
             setSelectedSocieties([...selectedSocieties, newSoc.id]);
             setIsAddSocietyOpen(false);
-            setNewSocietyName("");
+            setNewSocietyData({
+                name: "",
+                description: "",
+                presidentName: "",
+                vicePresidentName: "",
+                convenerName: ""
+            });
         } catch (error) {
             console.error("Failed to add society", error);
             alert("Failed to add society.");
@@ -468,22 +480,56 @@ export default function CreateEventPage() {
                                             </DialogHeader>
                                             <div className="space-y-4 py-4">
                                                 <div className="space-y-2">
-                                                    <Label>Society Name</Label>
+                                                    <Label>Society Name *</Label>
                                                     <Input
-                                                        value={newSocietyName}
-                                                        onChange={(e) => setNewSocietyName(e.target.value)}
+                                                        value={newSocietyData.name}
+                                                        onChange={(e) => setNewSocietyData({ ...newSocietyData, name: e.target.value })}
                                                         placeholder="e.g., Tech Society"
                                                     />
                                                 </div>
+                                                <div className="space-y-2">
+                                                    <Label>Description *</Label>
+                                                    <Textarea
+                                                        value={newSocietyData.description}
+                                                        onChange={(e) => setNewSocietyData({ ...newSocietyData, description: e.target.value })}
+                                                        placeholder="Briefly describe the society..."
+                                                    />
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="space-y-2">
+                                                        <Label>President Name</Label>
+                                                        <Input
+                                                            value={newSocietyData.presidentName}
+                                                            onChange={(e) => setNewSocietyData({ ...newSocietyData, presidentName: e.target.value })}
+                                                            placeholder="President"
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-2">
+                                                        <Label>Vice President</Label>
+                                                        <Input
+                                                            value={newSocietyData.vicePresidentName}
+                                                            onChange={(e) => setNewSocietyData({ ...newSocietyData, vicePresidentName: e.target.value })}
+                                                            placeholder="Vice President"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Convener Name</Label>
+                                                    <Input
+                                                        value={newSocietyData.convenerName}
+                                                        onChange={(e) => setNewSocietyData({ ...newSocietyData, convenerName: e.target.value })}
+                                                        placeholder="Faculty Convener"
+                                                    />
+                                                </div>
+                                            </div>
                                                 <Button
                                                     onClick={handleAddSociety}
-                                                    disabled={!newSocietyName.trim() || isAddingSociety}
+                                                    disabled={!newSocietyData.name.trim() || !newSocietyData.description.trim() || isAddingSociety}
                                                     className="w-full"
                                                 >
                                                     {isAddingSociety && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                     Add Society
                                                 </Button>
-                                            </div>
                                         </DialogContent>
                                     </Dialog>
                                 </div>
