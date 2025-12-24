@@ -43,7 +43,8 @@ export default function AdminPage() {
         presidentName: "",
         vicePresidentName: "",
         convenerName: "",
-        logoUrl: ""
+        logoUrl: "",
+        university: user?.university || "Global"
     });
 
     const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -82,7 +83,7 @@ export default function AdminPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['societies'] });
             setIsCreateOpen(false);
-            setNewSociety({ name: "", description: "", presidentName: "", vicePresidentName: "", convenerName: "", logoUrl: "" });
+            setNewSociety({ name: "", description: "", presidentName: "", vicePresidentName: "", convenerName: "", logoUrl: "", university: user?.university || "Global" });
             setLogoFile(null);
         }
     });

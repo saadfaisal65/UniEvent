@@ -93,6 +93,7 @@ async function main() {
             { type: 'string', key: 'vicePresidentName', size: 256, required: false },
             { type: 'string', key: 'convenerName', size: 256, required: false },
             { type: 'string', key: 'createdBy', size: 256, required: false },
+            { type: 'string', key: 'university', size: 128, required: true },
         ]);
         
         // Seed Societies
@@ -100,9 +101,9 @@ async function main() {
         if (records.total === 0) {
             console.log('🌱 Seeding Societies...');
             const societies = [
-                { name: "Tech Society", description: "Innovating the future.", presidentName: "Alice", vicePresidentName: "Bob", convenerName: "Dr. Smith", createdBy: "system" },
-                { name: "Music Club", description: "Rhythms of campus.", presidentName: "Charlie", vicePresidentName: "David", convenerName: "Prof. Jones", createdBy: "system" },
-                { name: "Debating Union", description: "Voices that matter.", presidentName: "Eve", vicePresidentName: "Frank", convenerName: "Mrs. Wilson", createdBy: "system" }
+                { name: "Tech Society", description: "Innovating the future.", presidentName: "Alice", vicePresidentName: "Bob", convenerName: "Dr. Smith", createdBy: "system", university: "Global" },
+                { name: "Music Club", description: "Rhythms of campus.", presidentName: "Charlie", vicePresidentName: "David", convenerName: "Prof. Jones", createdBy: "system", university: "Global" },
+                { name: "Debating Union", description: "Voices that matter.", presidentName: "Eve", vicePresidentName: "Frank", convenerName: "Mrs. Wilson", createdBy: "system", university: "Global" }
             ];
             for (const s of societies) {
                 await databases.createDocument(dbId, SOCIETIES_COLL_ID, ID.unique(), s);
@@ -128,6 +129,7 @@ async function main() {
             { type: 'string', key: 'societies', size: 256, required: false, array: true },
             { type: 'string', key: 'university', size: 128, required: false, default: "Global" },
             { type: 'string', key: 'attendeeIds', size: 256, required: false, array: true },
+            { type: 'boolean', key: 'restrictToUniversity', required: false, default: false },
         ]);
         
         // Add Indexes for Events
@@ -198,6 +200,7 @@ async function main() {
             { type: 'string', key: 'userId', size: 256, required: true },
             { type: 'string', key: 'email', size: 256, required: true },
             { type: 'boolean', key: 'isAdmin', required: false, default: false },
+            { type: 'string', key: 'university', size: 128, required: false, default: 'Global' },
         ]);
         // Index for faster lookup by userId
         await createIndex(dbId, USERS_COLL_ID, 'userid_idx', 'key', ['userId'], ['ASC']);

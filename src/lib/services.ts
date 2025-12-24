@@ -21,7 +21,8 @@ export async function getSocieties(): Promise<Society[]> {
             presidentName: doc.presidentName,
             vicePresidentName: doc.vicePresidentName,
             convenerName: doc.convenerName,
-            createdBy: doc.createdBy
+            createdBy: doc.createdBy,
+            university: doc.university
         }));
     } catch (error) {
         console.error("Error fetching societies:", error);
@@ -69,7 +70,8 @@ export async function getEvents(): Promise<Event[]> {
                 isPast: new Date(doc.date) < new Date(),
                 registrationLink: doc.registrationLink,
                 societies: eventSocieties,
-                attendeeIds: doc.attendeeIds || []
+                attendeeIds: doc.attendeeIds || [],
+                restrictToUniversity: doc.restrictToUniversity || false
             };
         });
     } catch (error) {
@@ -177,7 +179,8 @@ export async function getEventById(id: string): Promise<Event | null> {
             isPast: new Date(doc.date) < new Date(),
             registrationLink: doc.registrationLink,
             societies: eventSocieties,
-            attendeeIds: doc.attendeeIds || []
+            attendeeIds: doc.attendeeIds || [],
+            restrictToUniversity: doc.restrictToUniversity || false
         };
     } catch (error) {
         console.error("Error fetching event:", error);
@@ -286,6 +289,7 @@ export interface UserRole {
     userId: string;
     email: string;
     isAdmin: boolean;
+    university?: string;
 }
 
 export interface AdminRequest {
@@ -297,7 +301,7 @@ export interface AdminRequest {
     status: 'pending' | 'approved' | 'rejected';
 }
 
-export async function ensureUserProfile(userId: string, email: string): Promise<UserRole | null> {
+export async function ensureUserProfile(userId: string, email: string, university?: string): Promise<UserRole | null> {
     try {
         const response = await databases.listDocuments(DATABASE_ID, USERS_COLL_ID, [Query.equal('userId', userId)]);
         if (response.documents.length > 0) {
@@ -306,18 +310,20 @@ export async function ensureUserProfile(userId: string, email: string): Promise<
                 id: doc.$id,
                 userId: doc.userId,
                 email: doc.email,
-                isAdmin: doc.isAdmin
+                isAdmin: doc.isAdmin,
+                university: doc.university
             };
         } else {
             // Create New
             const doc = await databases.createDocument(DATABASE_ID, USERS_COLL_ID, ID.unique(), {
-                userId, email, isAdmin: true
+                userId, email, isAdmin: true, university: university || 'Global'
             });
             return {
                 id: doc.$id,
                 userId: doc.userId,
                 email: doc.email,
-                isAdmin: doc.isAdmin
+                isAdmin: doc.isAdmin,
+                university: doc.university
             };
         }
     } catch (e) {

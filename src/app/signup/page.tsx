@@ -8,20 +8,43 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Loader2 } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getUniversities, createUniversity } from "@/lib/services";
+import { ensureUserProfile } from "@/lib/services";
 
 export default function SignupPage() {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-
+    const [university, setUniversity] = useState("Global");
+    const [isAddUniOpen, setIsAddUniOpen] = useState(false);
+    const [newUniName, setNewUniName] = useState("");
 
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const { checkSession } = useAuth();
+    const queryClient = useQueryClient();
+
+    const { data: universities } = useQuery({
+        queryKey: ['universities'],
+        queryFn: getUniversities
+    });
+
+    const addUniMutation = useMutation({
+        mutationFn: createUniversity,
+        onSuccess: (newUni) => {
+            queryClient.invalidateQueries({ queryKey: ['universities'] });
+            setUniversity(newUni.name);
+            setIsAddUniOpen(false);
+            setNewUniName("");
+        }
+    });
 
     const handleSignup = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,7 +58,8 @@ export default function SignupPage() {
             // 2. Auto Login (Create Session)
             await account.createEmailPasswordSession(email, password);
 
-            // 3. Update Context
+            // 3. Create User Profile with University
+            await ensureUserProfile(newAccount.$id, email, university);
 
             // 4. Update Context
             await checkSession();
@@ -94,7 +118,52 @@ export default function SignupPage() {
                             />
                         </div>
 
-
+                        <div className="space-y-2">
+                            <Label htmlFor="university">University / Institution</Label>
+                            <div className="flex gap-2">
+                                <Select value={university} onValueChange={setUniversity} required>
+                                    <SelectTrigger className="flex-1">
+                                        <SelectValue placeholder="Select University" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {universities?.map((uni: any) => (
+                                            <SelectItem key={uni.id} value={uni.name}>{uni.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Dialog open={isAddUniOpen} onOpenChange={setIsAddUniOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button type="button" variant="outline" size="icon" title="Add New University">
+                                            <Plus className="h-4 w-4" />
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Add New University</DialogTitle>
+                                            <DialogDescription>Add a university that's not in the list.</DialogDescription>
+                                        </DialogHeader>
+                                        <div className="space-y-4 py-4">
+                                            <div className="space-y-2">
+                                                <Label>University Name</Label>
+                                                <Input
+                                                    value={newUniName}
+                                                    onChange={(e) => setNewUniName(e.target.value)}
+                                                    placeholder="e.g., Harvard University"
+                                                />
+                                            </div>
+                                            <Button
+                                                onClick={() => addUniMutation.mutate(newUniName)}
+                                                disabled={!newUniName.trim() || addUniMutation.isPending}
+                                                className="w-full"
+                                            >
+                                                {addUniMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                Add University
+                                            </Button>
+                                        </div>
+                                    </DialogContent>
+                                </Dialog>
+                            </div>
+                        </div>
 
                         {error && <p className="text-sm text-red-500">{error}</p>}
                         <Button className="w-full bg-indigo-600 hover:bg-indigo-700" type="submit" disabled={loading}>

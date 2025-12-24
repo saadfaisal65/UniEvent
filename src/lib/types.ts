@@ -4,6 +4,7 @@ export interface User {
     displayName: string | null;
     photoURL: string | null;
     isAdmin?: boolean;
+    university?: string;
 }
 
 export interface Society {
@@ -14,8 +15,8 @@ export interface Society {
     presidentName: string;
     vicePresidentName: string;
     convenerName: string;
-    university?: string;
     createdBy?: string;
+    university: string;
 }
 
 export interface Event {
@@ -34,4 +35,5 @@ export interface Event {
     societies?: Society[]; // Array of Society objects
     university?: string;
     attendeeIds?: string[];
+    restrictToUniversity?: boolean;
 }

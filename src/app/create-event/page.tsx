@@ -35,6 +35,7 @@ export default function CreateEventPage() {
         description: "",
         registrationLink: "",
         university: "Global",
+        restrictToUniversity: false,
     });
 
     // University State
@@ -121,6 +122,7 @@ export default function CreateEventPage() {
             organizerId: user.uid,
             registrationLink: formData.registrationLink,
             university: formData.university,
+            restrictToUniversity: formData.restrictToUniversity,
             societyIds: eventType === "official" ? selectedSocieties : [], // Only send societies if official
         });
     };
@@ -322,6 +324,19 @@ export default function CreateEventPage() {
                                     className="h-11"
                                 />
                                 <p className="text-xs text-slate-500">Provide a link if users need to register externally.</p>
+                            </div>
+
+                            <div className="flex items-center space-x-2 p-4 rounded-lg border bg-slate-50 dark:bg-slate-900">
+                                <input
+                                    type="checkbox"
+                                    id="restrictToUniversity"
+                                    checked={formData.restrictToUniversity}
+                                    onChange={(e) => setFormData({ ...formData, restrictToUniversity: e.target.checked })}
+                                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                                />
+                                <Label htmlFor="restrictToUniversity" className="cursor-pointer font-medium">
+                                    Restrict to {formData.university} students only
+                                </Label>
                             </div>
                         </div>
                     </div>
