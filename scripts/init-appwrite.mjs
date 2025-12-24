@@ -61,7 +61,7 @@ async function main() {
     // 0. RESET DATA (If requested)
     console.log('🧹 Cleaning up database and storage...');
     try {
-        const resetCollections = [EVENTS_COLL_ID, SOCIETIES_COLL_ID, 'universities', 'categories', 'users_roles', 'admin_requests']; 
+        const resetCollections = [EVENTS_COLL_ID, SOCIETIES_COLL_ID, 'universities', 'categories', 'users_roles', 'admin_requests', 'venues']; 
         // Note: added users_roles and admin_requests to ensure full clean reset if needed, though they might not be critical for this specific error.
         
         for (const cid of resetCollections) {
@@ -131,6 +131,8 @@ async function main() {
             { type: 'string', key: 'university', size: 128, required: false, default: "Global" },
             { type: 'string', key: 'attendeeIds', size: 256, required: false, array: true },
             { type: 'boolean', key: 'restrictToUniversity', required: false, default: false },
+            { type: 'integer', key: 'duration', required: false, default: 60 },
+            { type: 'string', key: 'venueId', size: 128, required: false },
         ]);
         
         // Add Indexes for Events
@@ -218,6 +220,34 @@ async function main() {
             { type: 'string', key: 'status', size: 50, required: false, default: 'pending' }, // pending, approved, rejected
         ]);
     } catch (e) { console.error('Error with Admin Requests:', e.message); }
+
+    // 9. Venues Collection
+    const VENUES_COLL_ID = 'venues';
+    try {
+        await createCollection(dbId, VENUES_COLL_ID, 'Venues', [
+            { type: 'string', key: 'name', size: 128, required: true },
+            { type: 'string', key: 'university', size: 128, required: true },
+            { type: 'integer', key: 'capacity', required: false, default: 100 },
+        ]);
+        
+        // Seed Venues
+        const records = await databases.listDocuments(dbId, VENUES_COLL_ID);
+        if (records.total === 0) {
+            console.log('🌱 Seeding Venues...');
+            const venues = [
+                { name: "MP-HALL-1", university: "National Textile University", capacity: 200 },
+                { name: "MP-HALL-2", university: "National Textile University", capacity: 150 },
+                { name: "Main Hall", university: "National Textile University", capacity: 500 },
+                { name: "Auditorium", university: "Global", capacity: 300 },
+            ];
+            for (const v of venues) {
+                await databases.createDocument(dbId, VENUES_COLL_ID, ID.unique(), v);
+            }
+        }
+        await createIndex(dbId, VENUES_COLL_ID, 'uni_venue_idx', 'key', ['university'], ['ASC']);
+    } catch (e) {
+        console.error('Error with Venues:', e.message);
+    }
 
 
     console.log('🎉 Appwrite Initialization Complete!');

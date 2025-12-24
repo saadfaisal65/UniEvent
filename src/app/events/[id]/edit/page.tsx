@@ -3,16 +3,16 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { getEventById, updateEvent, getSocieties } from "@/lib/services";
+import { getEventById, updateEvent, getSocieties, getVenues } from "@/lib/services";
 import { uploadFile, getFilePreview, deleteFile } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Upload, CalendarDays, Users } from "lucide-react";
+import { Loader2, Upload, CalendarDays, Users, Clock } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Society } from "@/lib/types";
+import { Society, Venue } from "@/lib/types";
 import React from "react";
 
 export default function EditEventPage({ params }: { params: Promise<{ id: string }> }) {
@@ -35,6 +35,9 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
         description: "",
         registrationLink: "",
         university: "Global",
+
+        venueId: "",
+        duration: 60,
     });
 
     const { data: event, isLoading: eventLoading } = useQuery({
@@ -45,6 +48,12 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
     const { data: societies } = useQuery({
         queryKey: ['societies'],
         queryFn: getSocieties
+    });
+
+    const { data: venues } = useQuery({
+        queryKey: ['venues', formData.university],
+        queryFn: () => getVenues(formData.university),
+        enabled: !!formData.university
     });
 
     // Populate form when event loads
@@ -65,6 +74,9 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                 description: event.description,
                 registrationLink: event.registrationLink || "",
                 university: event.university || "Global",
+
+                venueId: event.venueId || "",
+                duration: event.duration || 60,
             });
 
             if (event.imageUrl) {
@@ -203,15 +215,48 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="location">Location</Label>
-                                <Input
-                                    id="location"
-                                    value={formData.location}
-                                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                    required
-                                    className="h-11"
-                                />
+                            <div className="space-y-2">
+                                <Label htmlFor="venue">Venue</Label>
+                                <Select 
+                                    value={formData.venueId} 
+                                    onValueChange={(val) => {
+                                        const selectedVenue = venues?.find(v => v.id === val);
+                                        setFormData({ ...formData, venueId: val, location: selectedVenue ? selectedVenue.name : "" })
+                                    }}
+                                >
+                                    <SelectTrigger id="venue" className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-11">
+                                        <SelectValue placeholder="Select Venue" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {venues?.map((v: Venue) => (
+                                            <SelectItem key={v.id} value={v.id}>{v.name} (Cap: {v.capacity})</SelectItem>
+                                        ))}
+                                        {(!venues || venues.length === 0) && <SelectItem value="custom" disabled>No venues found for {formData.university}</SelectItem>}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="duration">Duration</Label>
+                                <Select 
+                                    value={formData.duration.toString()} 
+                                    onValueChange={(val) => setFormData({ ...formData, duration: parseInt(val) })}
+                                >
+                                    <SelectTrigger id="duration" className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-11">
+                                        <div className="flex items-center">
+                                            <Clock className="mr-2 h-4 w-4 text-slate-400" />
+                                            <SelectValue placeholder="Duration" />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="30">30 Minutes</SelectItem>
+                                        <SelectItem value="60">1 Hour</SelectItem>
+                                        <SelectItem value="90">1.5 Hours</SelectItem>
+                                        <SelectItem value="120">2 Hours</SelectItem>
+                                        <SelectItem value="180">3 Hours</SelectItem>
+                                        <SelectItem value="240">4 Hours</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
 

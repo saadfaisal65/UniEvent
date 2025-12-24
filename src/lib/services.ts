@@ -1,11 +1,12 @@
 import { databases } from "./appwrite";
 import { ID, Query } from "appwrite";
-import { Event, Society } from "./types";
+import { Event, Society, Venue } from "./types";
 import { getFileView, deleteFile } from "./storage";
 
 const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
 const EVENTS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_EVENTS_COLLECTION_ID!;
 const SOCIETIES_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_SOCIETIES_COLLECTION_ID || "societies";
+const VENUES_COLLECTION_ID = "venues";
 
 export async function getSocieties(): Promise<Society[]> {
     try {
@@ -50,6 +51,62 @@ export async function createSociety(data: Omit<Society, "id">): Promise<Society>
     }
 }
 
+export async function getVenues(university?: string): Promise<Venue[]> {
+    try {
+        const queries = [Query.limit(100)];
+        if (university && university !== "Global") {
+            queries.push(Query.equal("university", university));
+        }
+
+        const response = await databases.listDocuments(
+            DATABASE_ID,
+            VENUES_COLLECTION_ID,
+            queries
+        );
+
+        return response.documents.map((doc: any) => ({
+            id: doc.$id,
+            name: doc.name,
+            university: doc.university,
+            capacity: doc.capacity
+        }));
+    } catch (error) {
+        console.error("Error fetching venues:", error);
+        return [];
+    }
+}
+
+export async function checkVenueAvailability(venueId: string, dateStr: string, durationMinutes: number, currentEventId?: string): Promise<boolean> {
+    try {
+        const targetStart = new Date(dateStr).getTime();
+        const targetEnd = targetStart + durationMinutes * 60 * 1000;
+
+        const response = await databases.listDocuments(
+            DATABASE_ID,
+            EVENTS_COLLECTION_ID,
+            [
+                Query.equal("venueId", venueId)
+            ]
+        );
+
+        for (const doc of response.documents) {
+            if (currentEventId && doc.$id === currentEventId) continue;
+
+            const eventStart = new Date(doc.date).getTime();
+            const eventDuration = doc.duration || 60;
+            const eventEnd = eventStart + eventDuration * 60 * 1000;
+
+            if (targetStart < eventEnd && targetEnd > eventStart) {
+                return false;
+            }
+        }
+        return true;
+    } catch (error) {
+        console.error("Error checking availability:", error);
+        return true;
+    }
+}
+
 export async function getEvents(): Promise<Event[]> {
     try {
         const [eventsResponse, societies] = await Promise.all([
@@ -82,8 +139,11 @@ export async function getEvents(): Promise<Event[]> {
                 registrationLink: doc.registrationLink,
                 societies: eventSocieties,
                 attendeeIds: doc.attendeeIds || [],
-                restrictToUniversity: doc.restrictToUniversity || false
+                restrictToUniversity: doc.restrictToUniversity || false,
+                duration: doc.duration,
+                venueId: doc.venueId
             };
+
         });
     } catch (error) {
         console.error("Error fetching events:", error);
@@ -94,6 +154,15 @@ export async function getEvents(): Promise<Event[]> {
 export async function addEvent(eventData: Omit<Event, "id" | "rsvps" | "isPast"> & { societyIds?: string[] }): Promise<void> {
     try {
         const { societyIds, ...data } = eventData;
+        
+        // Validate Venue Availability
+        if (data.venueId && data.duration) {
+             const isAvailable = await checkVenueAvailability(data.venueId, data.date, data.duration);
+             if (!isAvailable) {
+                 throw new Error("The selected venue is invalid or already booked for this time slot.");
+             }
+        }
+
         await databases.createDocument(
             DATABASE_ID,
             EVENTS_COLLECTION_ID,
@@ -115,6 +184,21 @@ export async function updateEvent(id: string, eventData: Partial<Event> & { soci
     try {
         const { societyIds, ...data } = eventData;
         const { id: _, isPast: __, rsvps: ___, societies: ____, ...cleanData } = data as any;
+
+        // If venue, date or duration is changing, validation is needed.
+        if (data.venueId || data.date || data.duration) {
+            const currentEvent = await getEventById(id);
+            if (currentEvent) { 
+                 const checkVenue = data.venueId || currentEvent.venueId;
+                 const checkDate = data.date || currentEvent.date;
+                 const checkDuration = data.duration || currentEvent.duration || 60;
+                 
+                 if (checkVenue) {
+                     const isAvailable = await checkVenueAvailability(checkVenue, checkDate, checkDuration, id);
+                     if (!isAvailable) throw new Error("Venue conflict : The venue is booked.");
+                 }
+            }
+        }
 
         const payload: any = { ...cleanData };
         if (societyIds) payload.societies = societyIds;
@@ -195,7 +279,9 @@ export async function getEventById(id: string): Promise<Event | null> {
             registrationLink: doc.registrationLink,
             societies: eventSocieties,
             attendeeIds: doc.attendeeIds || [],
-            restrictToUniversity: doc.restrictToUniversity || false
+            restrictToUniversity: doc.restrictToUniversity || false,
+            duration: doc.duration,
+            venueId: doc.venueId
         };
     } catch (error) {
         console.error("Error fetching event:", error);

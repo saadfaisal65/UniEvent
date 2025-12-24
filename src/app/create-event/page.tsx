@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { addEvent, getSocieties, getUniversities, createUniversity, getCategories, createCategory, createSociety } from "@/lib/services";
+import { addEvent, getSocieties, getUniversities, createUniversity, getCategories, createCategory, createSociety, getVenues } from "@/lib/services";
 import { uploadFile } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,9 +11,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Upload, Link as LinkIcon, Users, CalendarDays, Plus } from "lucide-react";
+import { Loader2, Upload, Link as LinkIcon, Users, CalendarDays, Plus, Clock } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Society } from "@/lib/types";
+import { Society, Venue } from "@/lib/types";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { storage } from "@/lib/appwrite";
 import { ID } from "appwrite";
@@ -38,6 +38,8 @@ export default function CreateEventPage() {
         registrationLink: "",
         university: "Global",
         restrictToUniversity: false,
+        venueId: "",
+        duration: 60
     });
 
     // University State
@@ -87,6 +89,12 @@ export default function CreateEventPage() {
     const { data: universities } = useQuery({
         queryKey: ['universities'],
         queryFn: getUniversities
+    });
+
+    const { data: venues } = useQuery({
+        queryKey: ['venues', formData.university],
+        queryFn: () => getVenues(formData.university),
+        enabled: !!formData.university
     });
 
     const handleAddUniversity = async () => {
@@ -350,16 +358,48 @@ export default function CreateEventPage() {
                         </div>
 
                         <div className="grid md:grid-cols-2 gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="location">Location</Label>
-                                <Input
-                                    id="location"
-                                    value={formData.location}
-                                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                                    placeholder="e.g. Student Center, Room 101"
-                                    required
-                                    className="h-11"
-                                />
+                            <div className="space-y-2">
+                                <Label htmlFor="venue">Venue</Label>
+                                <Select 
+                                    value={formData.venueId} 
+                                    onValueChange={(val) => {
+                                        const selectedVenue = venues?.find(v => v.id === val);
+                                        setFormData({ ...formData, venueId: val, location: selectedVenue ? selectedVenue.name : "" })
+                                    }}
+                                >
+                                    <SelectTrigger id="venue" className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-11">
+                                        <SelectValue placeholder="Select Venue" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {venues?.map((v: Venue) => (
+                                            <SelectItem key={v.id} value={v.id}>{v.name} (Cap: {v.capacity})</SelectItem>
+                                        ))}
+                                        {(!venues || venues.length === 0) && <SelectItem value="custom" disabled>No venues found for {formData.university}</SelectItem>}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="duration">Duration</Label>
+                                <Select 
+                                    value={formData.duration.toString()} 
+                                    onValueChange={(val) => setFormData({ ...formData, duration: parseInt(val) })}
+                                >
+                                    <SelectTrigger id="duration" className="bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 h-11">
+                                        <div className="flex items-center">
+                                            <Clock className="mr-2 h-4 w-4 text-slate-400" />
+                                            <SelectValue placeholder="Duration" />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="30">30 Minutes</SelectItem>
+                                        <SelectItem value="60">1 Hour</SelectItem>
+                                        <SelectItem value="90">1.5 Hours</SelectItem>
+                                        <SelectItem value="120">2 Hours</SelectItem>
+                                        <SelectItem value="180">3 Hours</SelectItem>
+                                        <SelectItem value="240">4 Hours</SelectItem>
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
 

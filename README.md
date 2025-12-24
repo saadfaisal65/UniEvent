@@ -32,7 +32,7 @@ UniEvent is a modern, centralized platform designed to help university students 
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/saadfaisal65/unievent.git
+git clone https://github.com/saadfaisal65/unieven-.git
 cd unievent
 npm install
 ```

@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Loader2, Calendar as CalendarIcon, Filter, GraduationCap } from "lucide-react";
+import { Search, Loader2, Calendar as CalendarIcon, Filter, GraduationCap, Code, Music, Trophy, Globe, Cpu, Laptop, Rocket, Palette } from "lucide-react";
 import { EventCard } from "@/components/events/EventCard";
 import { getEvents, getSocieties, getUniversities, getCategories } from "@/lib/services";
 import { Event, Society } from "@/lib/types";
@@ -86,6 +86,35 @@ export default function Home() {
             ease: "linear"
           }}
         />
+
+        {/* Fluid Background Blobs */}
+        <motion.div
+          className="absolute -top-20 -left-20 w-72 h-72 bg-purple-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20"
+          animate={{
+            x: [0, 100, 0],
+            y: [0, 50, 0],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            repeatType: "reverse"
+          }}
+        />
+        <motion.div
+          className="absolute top-1/2 -right-20 w-96 h-96 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20"
+          animate={{
+            x: [0, -50, 0],
+            y: [0, 100, 0],
+            scale: [1, 1.1, 1],
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            repeatType: "reverse"
+          }}
+        />
+
         <div className="relative z-10 mx-auto max-w-4xl space-y-6">
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -169,6 +198,51 @@ export default function Home() {
                   </Button>
                 </motion.div>
               )}
+            </div>
+          </motion.div>
+
+          {/* Logo Marquee */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1, duration: 1 }}
+            className="pt-12 overflow-hidden flex flex-col items-center gap-4"
+          >
+            <p className="text-sm font-medium text-indigo-200 uppercase tracking-widest">Trusted by Students from Top Universities</p>
+            <div className="flex gap-12 w-full max-w-2xl overflow-hidden mask-linear-fade">
+              <motion.div
+                className="flex gap-12 min-w-max"
+                animate={{ x: ["0%", "-50%"] }}
+                transition={{
+                  repeat: Infinity,
+                  ease: "linear",
+                  duration: 20
+                }}
+              >
+                {[
+                  { Icon: GraduationCap, label: "MIT" },
+                  { Icon: Code, label: "Tech Club" },
+                  { Icon: Globe, label: "Model UN" },
+                  { Icon: Music, label: "Music Soc" },
+                  { Icon: Trophy, label: "Sports" },
+                  { Icon: Cpu, label: "Robotics" },
+                  { Icon: Rocket, label: "Startups" },
+                  { Icon: Palette, label: "Arts" },
+                  { Icon: GraduationCap, label: "MIT" },
+                  { Icon: Code, label: "Tech Club" },
+                  { Icon: Globe, label: "Model UN" },
+                  { Icon: Music, label: "Music Soc" },
+                  { Icon: Trophy, label: "Sports" },
+                  { Icon: Cpu, label: "Robotics" },
+                  { Icon: Rocket, label: "Startups" },
+                  { Icon: Palette, label: "Arts" },
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 text-indigo-200/60 hover:text-white transition-colors">
+                    <item.Icon className="w-6 h-6" />
+                    <span className="font-semibold">{item.label}</span>
+                  </div>
+                ))}
+              </motion.div>
             </div>
           </motion.div>
         </div>

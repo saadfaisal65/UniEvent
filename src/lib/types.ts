@@ -19,6 +19,13 @@ export interface Society {
     university: string;
 }
 
+export interface Venue {
+    id: string;
+    name: string;
+    university: string;
+    capacity: number;
+}
+
 export interface Event {
     id: string;
     title: string;
@@ -27,13 +34,17 @@ export interface Event {
     description: string;
     category: string;
     imageUrl?: string;
-    imageId?: string; // Appwrite Storage File ID
+    imageId?: string;
     rsvps: number;
-    organizerId?: string;
-    isPast?: boolean;
+    organizerId: string;
     registrationLink?: string;
-    societies?: Society[]; // Array of Society objects
-    university?: string;
-    attendeeIds?: string[];
+    societies?: Society[];
+    attendeeIds: string[];
     restrictToUniversity?: boolean;
+    duration?: number;
+    venueId?: string;
+    university?: string;
+    isPast?: boolean;
 }
+
+
