@@ -241,6 +241,8 @@ async function createCollection(dbId, collId, name, attributes) {
                 await databases.createStringAttribute(dbId, collId, attr.key, attr.size, attr.required, attr.default, attr.array);
             } else if (attr.type === 'integer') {
                 await databases.createIntegerAttribute(dbId, collId, attr.key, attr.required, 0, 1000000, attr.default, attr.array);
+            } else if (attr.type === 'boolean') {
+                await databases.createBooleanAttribute(dbId, collId, attr.key, attr.required, attr.default, attr.array);
             } else if (attr.type === 'url') {
                 await databases.createUrlAttribute(dbId, collId, attr.key, attr.required, attr.default, attr.array);
             } else if (attr.type === 'datetime') {

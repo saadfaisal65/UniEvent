@@ -207,9 +207,8 @@ export async function getUniversities(): Promise<University[]> {
             location: doc.location
         }));
     } catch (error) {
-        // If collection doesn't exist yet (first run race condition), return default Global
-        console.warn("Error fetching universities (might be initializing):", error);
-        return [{ id: "global", name: "Global" }];
+        console.error("Error fetching universities:", error);
+        return [];
     }
 }
 
