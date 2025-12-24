@@ -12,10 +12,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Plus, Trash2, Edit, ShieldCheck } from "lucide-react";
+import { Loader2, Plus, Trash2, Edit, ShieldCheck, Upload, Image as ImageIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
+import { storage } from "@/lib/appwrite";
+import { ID } from "appwrite";
+
+const BUCKET_ID = process.env.NEXT_PUBLIC_APPWRITE_STORAGE_BUCKET_ID || "event-posters";
 
 export default function AdminPage() {
     const { user, loading } = useAuth();
@@ -38,8 +42,27 @@ export default function AdminPage() {
         description: "",
         presidentName: "",
         vicePresidentName: "",
-        convenerName: ""
+        convenerName: "",
+        logoUrl: ""
     });
+
+    const [uploadingLogo, setUploadingLogo] = useState(false);
+    const [logoFile, setLogoFile] = useState<File | null>(null);
+    const [editLogoFile, setEditLogoFile] = useState<File | null>(null);
+
+    const handleLogoUpload = async (file: File): Promise<string> => {
+        try {
+            setUploadingLogo(true);
+            const response = await storage.createFile(BUCKET_ID, ID.unique(), file);
+            const fileUrl = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${response.$id}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
+            return fileUrl;
+        } catch (error) {
+            console.error("Logo upload failed:", error);
+            throw error;
+        } finally {
+            setUploadingLogo(false);
+        }
+    };
 
     const updateSocietyMutation = useMutation({
         mutationFn: async (data: Society) => {
@@ -48,6 +71,7 @@ export default function AdminPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['societies'] });
             setIsEditOpen(false);
+            setEditLogoFile(null);
         }
     });
 
@@ -58,29 +82,34 @@ export default function AdminPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['societies'] });
             setIsCreateOpen(false);
-            setNewSociety({ name: "", description: "", presidentName: "", vicePresidentName: "", convenerName: "" });
+            setNewSociety({ name: "", description: "", presidentName: "", vicePresidentName: "", convenerName: "", logoUrl: "" });
+            setLogoFile(null);
         }
     });
 
     const handleEditSociety = (soc: Society) => {
-        // Only allow editing if user created it
-        if (soc.createdBy !== user?.uid) {
-            alert("You can only edit societies you created.");
-            return;
-        }
         setEditingSociety({ ...soc });
         setIsEditOpen(true);
     };
 
-    const handleSaveSociety = () => {
+    const handleSaveSociety = async () => {
         if (editingSociety) {
-            updateSocietyMutation.mutate(editingSociety);
+            let logoUrl = editingSociety.logoUrl;
+            if (editLogoFile) {
+                logoUrl = await handleLogoUpload(editLogoFile);
+            }
+            updateSocietyMutation.mutate({ ...editingSociety, logoUrl });
         }
     };
 
-    const handleCreateSociety = () => {
+    const handleCreateSociety = async () => {
+        let logoUrl = "";
+        if (logoFile) {
+            logoUrl = await handleLogoUpload(logoFile);
+        }
         createSocietyMutation.mutate({
             ...newSociety,
+            logoUrl,
             createdBy: user?.uid
         });
     };
@@ -148,12 +177,35 @@ export default function AdminPage() {
                                     <Plus className="h-4 w-4 mr-2" /> Create Society
                                 </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-lg">
+                            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                                 <DialogHeader>
                                     <DialogTitle>Create New Society</DialogTitle>
                                     <DialogDescription>Add a new society or club to the platform.</DialogDescription>
                                 </DialogHeader>
                                 <div className="space-y-4 py-4">
+                                    <div className="grid gap-2">
+                                        <Label>Logo</Label>
+                                        <div className="flex items-center gap-4">
+                                            {logoFile ? (
+                                                <div className="relative w-20 h-20 rounded-lg overflow-hidden border">
+                                                    <img src={URL.createObjectURL(logoFile)} alt="Preview" className="w-full h-full object-cover" />
+                                                </div>
+                                            ) : (
+                                                <div className="w-20 h-20 rounded-lg border-2 border-dashed flex items-center justify-center bg-slate-50">
+                                                    <ImageIcon className="h-8 w-8 text-slate-400" />
+                                                </div>
+                                            )}
+                                            <div className="flex-1">
+                                                <Input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(e) => setLogoFile(e.target.files?.[0] || null)}
+                                                    className="cursor-pointer"
+                                                />
+                                                <p className="text-xs text-slate-500 mt-1">PNG, JPG up to 2MB</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div className="grid gap-2">
                                         <Label>Name</Label>
                                         <Input value={newSociety.name} onChange={(e) => setNewSociety({ ...newSociety, name: e.target.value })} />
@@ -176,8 +228,9 @@ export default function AdminPage() {
                                         <Label>Convener</Label>
                                         <Input value={newSociety.convenerName} onChange={(e) => setNewSociety({ ...newSociety, convenerName: e.target.value })} />
                                     </div>
-                                    <Button onClick={handleCreateSociety} disabled={createSocietyMutation.isPending} className="w-full">
-                                        {createSocietyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Create
+                                    <Button onClick={handleCreateSociety} disabled={createSocietyMutation.isPending || uploadingLogo} className="w-full">
+                                        {(createSocietyMutation.isPending || uploadingLogo) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        {uploadingLogo ? "Uploading Logo..." : "Create"}
                                     </Button>
                                 </div>
                             </DialogContent>
@@ -188,15 +241,22 @@ export default function AdminPage() {
                         {socLoading ? <Loader2 className="animate-spin" /> : societies?.map((soc: Society) => (
                             <Card key={soc.id} className="hover:shadow-md transition-shadow">
                                 <CardHeader className="pb-3">
-                                    <div className="flex justify-between items-start">
-                                        <CardTitle className="text-lg">{soc.name}</CardTitle>
-                                        {soc.createdBy === user?.uid && (
-                                            <Button variant="ghost" size="icon" onClick={() => handleEditSociety(soc)}>
-                                                <Edit className="h-4 w-4 text-slate-500" />
-                                            </Button>
+                                    <div className="flex gap-3 items-start">
+                                        {soc.logoUrl && (
+                                            <img src={soc.logoUrl} alt={soc.name} className="w-12 h-12 rounded-lg object-cover border" />
                                         )}
+                                        <div className="flex-1">
+                                            <div className="flex justify-between items-start">
+                                                <CardTitle className="text-lg">{soc.name}</CardTitle>
+                                                {soc.createdBy === user?.uid && (
+                                                    <Button variant="ghost" size="icon" onClick={() => handleEditSociety(soc)}>
+                                                        <Edit className="h-4 w-4 text-slate-500" />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                            <CardDescription className="line-clamp-2 min-h-[40px]">{soc.description}</CardDescription>
+                                        </div>
                                     </div>
-                                    <CardDescription className="line-clamp-2 min-h-[40px]">{soc.description}</CardDescription>
                                 </CardHeader>
                                 <CardContent className="text-sm space-y-2">
                                     <div className="flex justify-between py-1 border-b">
@@ -220,13 +280,40 @@ export default function AdminPage() {
                     </div>
 
                     <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-                        <DialogContent className="max-w-lg">
+                        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
                             <DialogHeader>
                                 <DialogTitle>Edit Society</DialogTitle>
                                 <DialogDescription>Update society details and leadership.</DialogDescription>
                             </DialogHeader>
                             {editingSociety && (
                                 <div className="space-y-4 py-4">
+                                    <div className="grid gap-2">
+                                        <Label>Logo</Label>
+                                        <div className="flex items-center gap-4">
+                                            {editLogoFile ? (
+                                                <div className="relative w-20 h-20 rounded-lg overflow-hidden border">
+                                                    <img src={URL.createObjectURL(editLogoFile)} alt="Preview" className="w-full h-full object-cover" />
+                                                </div>
+                                            ) : editingSociety.logoUrl ? (
+                                                <div className="relative w-20 h-20 rounded-lg overflow-hidden border">
+                                                    <img src={editingSociety.logoUrl} alt={editingSociety.name} className="w-full h-full object-cover" />
+                                                </div>
+                                            ) : (
+                                                <div className="w-20 h-20 rounded-lg border-2 border-dashed flex items-center justify-center bg-slate-50">
+                                                    <ImageIcon className="h-8 w-8 text-slate-400" />
+                                                </div>
+                                            )}
+                                            <div className="flex-1">
+                                                <Input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(e) => setEditLogoFile(e.target.files?.[0] || null)}
+                                                    className="cursor-pointer"
+                                                />
+                                                <p className="text-xs text-slate-500 mt-1">Upload new logo (optional)</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                     <div className="grid gap-2">
                                         <Label>Name</Label>
                                         <Input value={editingSociety.name} onChange={(e) => setEditingSociety({ ...editingSociety, name: e.target.value })} />
@@ -249,8 +336,9 @@ export default function AdminPage() {
                                         <Label>Convener</Label>
                                         <Input value={editingSociety.convenerName} onChange={(e) => setEditingSociety({ ...editingSociety, convenerName: e.target.value })} />
                                     </div>
-                                    <Button onClick={handleSaveSociety} disabled={updateSocietyMutation.isPending} className="w-full">
-                                        {updateSocietyMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Save Changes
+                                    <Button onClick={handleSaveSociety} disabled={updateSocietyMutation.isPending || uploadingLogo} className="w-full">
+                                        {(updateSocietyMutation.isPending || uploadingLogo) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        {uploadingLogo ? "Uploading Logo..." : "Save Changes"}
                                     </Button>
                                 </div>
                             )}
