@@ -11,28 +11,37 @@ import { Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-  const { checkSession } = useAuth();
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
+    const router = useRouter();
+    const { checkSession } = useAuth();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
 
-    try {
-      await account.createEmailPasswordSession(email, password);
-      await checkSession(); // Update verify user in context
-      router.push("/");
-    } catch (err: any) {
-      setError(err.message || "Failed to sign in");
-    } finally {
-      setLoading(false);
-    }
-  };
+        try {
+            await account.createEmailPasswordSession(email, password);
+            await checkSession(); // Update user in context
+            router.push("/");
+        } catch (err: any) {
+            console.error("Login error:", err);
+
+            // Provide helpful error messages
+            if (err.message?.includes("Network") || err.message?.includes("fetch")) {
+                setError("Network error: Please check your internet connection. If deploying to Vercel, ensure environment variables are set correctly.");
+            } else if (err.code === 401) {
+                setError("Invalid email or password");
+            } else {
+                setError(err.message || "Failed to sign in");
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
         <div className="flex items-center justify-center py-12">

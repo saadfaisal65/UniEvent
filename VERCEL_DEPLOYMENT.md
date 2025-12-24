@@ -33,9 +33,9 @@ NEXT_PUBLIC_APPWRITE_STORAGE_BUCKET_ID=event-posters
 
 ## Common Issues
 
-### Network Error on Signup
+### Network Error on Login/Signup
 
-**Symptom**: "NetworkError when attempting to fetch resource" when creating an account
+**Symptom**: "NetworkError when attempting to fetch resource" when logging in or creating an account
 
 **Causes**:
 1. ✗ Environment variables not set on Vercel
@@ -44,17 +44,47 @@ NEXT_PUBLIC_APPWRITE_STORAGE_BUCKET_ID=event-posters
 
 **Solutions**:
 
-#### 1. Verify Environment Variables
+#### 1. Run Health Check
+Visit `/health` on your deployed app to diagnose the issue:
+- **Local**: `http://localhost:3000/health`
+- **Vercel**: `https://your-app.vercel.app/health`
+
+This will check:
+- Environment variables are set
+- Appwrite is reachable
+- Database is accessible
+
+#### 2. Verify Environment Variables
 - Check that ALL variables are set in Vercel dashboard
-- Redeploy after adding variables
+- Go to: **Project Settings → Environment Variables**
+- After adding/updating variables, **redeploy** your app
 
-#### 2. Configure Appwrite CORS
+#### 3. Configure Appwrite CORS
+**This is critical for Vercel deployments!**
+
 In your Appwrite Console:
-- Go to Project Settings → Platforms
-- Add your Vercel domain (e.g., `your-app.vercel.app`)
-- Add `localhost:3000` for local development
+1. Go to **Project Settings → Platforms**
+2. Click **Add Platform** → **Web App**
+3. Add these domains:
+   - **Name**: Vercel Production
+   - **Hostname**: `your-app.vercel.app` (replace with your actual domain)
+   - Click **Next** and **Create**
+4. Also add for local development:
+   - **Name**: Local Development
+   - **Hostname**: `localhost`
 
-#### 3. Check Appwrite Status
+**Important**: You must add BOTH your Vercel domain AND localhost for the app to work in both environments.
+
+#### 4. Check Appwrite Collection Permissions
+In Appwrite Console → Databases → Your Database → Each Collection:
+- Click on **Settings** tab
+- Under **Permissions**, ensure:
+  - **Read**: `Any` (or `Users`)
+  - **Create**: `Users`
+  - **Update**: `Users`
+  - **Delete**: `Users`
+
+#### 5. Check Appwrite Status
 - Ensure your Appwrite instance is running
 - Test the endpoint in your browser: `https://cloud.appwrite.io/v1/health`
 

@@ -179,7 +179,6 @@ export default function CreateEventPage() {
                                             <SelectValue placeholder="Select University" />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Global">Global / Other</SelectItem>
                                             {universities?.map((uni: any) => (
                                                 <SelectItem key={uni.id} value={uni.name}>{uni.name}</SelectItem>
                                             ))}
