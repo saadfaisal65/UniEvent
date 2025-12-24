@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import {
-    getSocieties, getCategories, updateSociety, createCategory, deleteCategory, createSociety, deleteSociety, Category
+    getSocieties, getCategories, updateSociety, createCategory, deleteCategory, createSociety, deleteSociety, Category, getUniversities
 } from "@/lib/services";
 import { Society } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Plus, Trash2, Edit, ShieldCheck, Upload, Image as ImageIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { Textarea } from "@/components/ui/textarea";
 import { storage } from "@/lib/appwrite";
@@ -34,6 +35,11 @@ export default function AdminPage() {
         enabled: !!user
     });
 
+    const { data: universities } = useQuery({
+        queryKey: ['universities'],
+        queryFn: getUniversities
+    });
+
     const [editingSociety, setEditingSociety] = useState<Society | null>(null);
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -46,6 +52,13 @@ export default function AdminPage() {
         logoUrl: "",
         university: user?.university || "Global"
     });
+
+    // Update university when user loads
+    useEffect(() => {
+        if (user?.university && newSociety.university === "Global") {
+            setNewSociety(prev => ({ ...prev, university: user.university || "Global" }));
+        }
+    }, [user, newSociety.university]);
 
     const [uploadingLogo, setUploadingLogo] = useState(false);
     const [logoFile, setLogoFile] = useState<File | null>(null);
@@ -228,14 +241,30 @@ export default function AdminPage() {
                                             <Label>President</Label>
                                             <Input value={newSociety.presidentName} onChange={(e) => setNewSociety({ ...newSociety, presidentName: e.target.value })} />
                                         </div>
-                                        <div className="grid gap-2">
-                                            <Label>Vice President</Label>
-                                            <Input value={newSociety.vicePresidentName} onChange={(e) => setNewSociety({ ...newSociety, vicePresidentName: e.target.value })} />
+                                        <div className="space-y-2">
+                                            <Label>Convener Name</Label>
+                                            <Input
+                                                value={newSociety.convenerName}
+                                                onChange={(e) => setNewSociety({ ...newSociety, convenerName: e.target.value })}
+                                                placeholder="Faculty Convener"
+                                            />
                                         </div>
-                                    </div>
-                                    <div className="grid gap-2">
-                                        <Label>Convener</Label>
-                                        <Input value={newSociety.convenerName} onChange={(e) => setNewSociety({ ...newSociety, convenerName: e.target.value })} />
+                                        <div className="space-y-2">
+                                            <Label>University</Label>
+                                            <Select
+                                                value={newSociety.university}
+                                                onValueChange={(value) => setNewSociety({ ...newSociety, university: value })}
+                                            >
+                                                <SelectTrigger>
+                                                    <SelectValue placeholder="Select University" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {universities?.map((uni: any) => (
+                                                        <SelectItem key={uni.id} value={uni.name}>{uni.name}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        </div>
                                     </div>
                                     <Button onClick={handleCreateSociety} disabled={createSocietyMutation.isPending || uploadingLogo} className="w-full">
                                         {(createSocietyMutation.isPending || uploadingLogo) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -262,9 +291,9 @@ export default function AdminPage() {
                                                         <Button variant="ghost" size="icon" onClick={() => handleEditSociety(soc)}>
                                                             <Edit className="h-4 w-4 text-slate-500" />
                                                         </Button>
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="icon" 
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
                                                             onClick={() => {
                                                                 if (confirm(`Delete "${soc.name}"? This will also delete all associated events.`)) {
                                                                     deleteSocietyMutation.mutate(soc.id);

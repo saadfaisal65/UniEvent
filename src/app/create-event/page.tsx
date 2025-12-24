@@ -55,8 +55,17 @@ export default function CreateEventPage() {
         description: "",
         presidentName: "",
         vicePresidentName: "",
-        convenerName: ""
+        convenerName: "",
+        university: "Global"
     });
+
+    // Update university when user loads
+    useEffect(() => {
+        if (user?.university) {
+            setNewSocietyData(prev => ({ ...prev, university: user.university || "Global" }));
+        }
+    }, [user]);
+
     const [isAddingSociety, setIsAddingSociety] = useState(false);
 
     const queryClient = useQueryClient();
@@ -120,7 +129,7 @@ export default function CreateEventPage() {
                 presidentName: newSocietyData.presidentName,
                 vicePresidentName: newSocietyData.vicePresidentName,
                 convenerName: newSocietyData.convenerName,
-                university: user?.university || "Global",
+                university: newSocietyData.university,
                 createdBy: user?.uid
             });
             await queryClient.invalidateQueries({ queryKey: ['societies'] });
@@ -131,7 +140,8 @@ export default function CreateEventPage() {
                 description: "",
                 presidentName: "",
                 vicePresidentName: "",
-                convenerName: ""
+                convenerName: "",
+                university: user?.university || "Global"
             });
         } catch (error) {
             console.error("Failed to add society", error);
@@ -521,15 +531,31 @@ export default function CreateEventPage() {
                                                         placeholder="Faculty Convener"
                                                     />
                                                 </div>
+                                                <div className="space-y-2">
+                                                    <Label>University</Label>
+                                                    <Select
+                                                        value={newSocietyData.university}
+                                                        onValueChange={(value) => setNewSocietyData({ ...newSocietyData, university: value })}
+                                                    >
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select University" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {universities?.map((uni: any) => (
+                                                                <SelectItem key={uni.id} value={uni.name}>{uni.name}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                </div>
                                             </div>
-                                                <Button
-                                                    onClick={handleAddSociety}
-                                                    disabled={!newSocietyData.name.trim() || !newSocietyData.description.trim() || isAddingSociety}
-                                                    className="w-full"
-                                                >
-                                                    {isAddingSociety && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                    Add Society
-                                                </Button>
+                                            <Button
+                                                onClick={handleAddSociety}
+                                                disabled={!newSocietyData.name.trim() || !newSocietyData.description.trim() || isAddingSociety}
+                                                className="w-full"
+                                            >
+                                                {isAddingSociety && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                Add Society
+                                            </Button>
                                         </DialogContent>
                                     </Dialog>
                                 </div>
