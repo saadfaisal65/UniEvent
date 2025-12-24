@@ -30,9 +30,20 @@ export async function getSocieties(): Promise<Society[]> {
     }
 }
 
-export async function createSociety(data: Omit<Society, "id">): Promise<void> {
+export async function createSociety(data: Omit<Society, "id">): Promise<Society> {
     try {
-        await databases.createDocument(DATABASE_ID, SOCIETIES_COLLECTION_ID, ID.unique(), data);
+        const doc: any = await databases.createDocument(DATABASE_ID, SOCIETIES_COLLECTION_ID, ID.unique(), data);
+        return {
+            id: doc.$id,
+            name: doc.name,
+            description: doc.description,
+            logoUrl: doc.logoUrl,
+            presidentName: doc.presidentName,
+            vicePresidentName: doc.vicePresidentName,
+            convenerName: doc.convenerName,
+            createdBy: doc.createdBy,
+            university: doc.university
+        };
     } catch (error) {
         console.error("Error adding society:", error);
         throw error;

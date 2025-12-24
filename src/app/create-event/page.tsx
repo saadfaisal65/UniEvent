@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { addEvent, getSocieties, getUniversities, createUniversity, getCategories } from "@/lib/services";
+import { addEvent, getSocieties, getUniversities, createUniversity, getCategories, createCategory, createSociety } from "@/lib/services";
 import { uploadFile } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,6 +42,17 @@ export default function CreateEventPage() {
     const [isAddUniOpen, setIsAddUniOpen] = useState(false);
     const [newUniName, setNewUniName] = useState("");
     const [isAddingUni, setIsAddingUni] = useState(false);
+
+    // Category State
+    const [isAddCategoryOpen, setIsAddCategoryOpen] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState("");
+    const [isAddingCategory, setIsAddingCategory] = useState(false);
+
+    // Society State
+    const [isAddSocietyOpen, setIsAddSocietyOpen] = useState(false);
+    const [newSocietyName, setNewSocietyName] = useState("");
+    const [isAddingSociety, setIsAddingSociety] = useState(false);
+
     const queryClient = useQueryClient();
 
     const { data: categories } = useQuery({
@@ -73,6 +84,48 @@ export default function CreateEventPage() {
             alert("Failed to add university.");
         } finally {
             setIsAddingUni(false);
+        }
+    };
+
+    const handleAddCategory = async () => {
+        if (!newCategoryName.trim()) return;
+        setIsAddingCategory(true);
+        try {
+            await createCategory(newCategoryName.trim());
+            await queryClient.invalidateQueries({ queryKey: ['categories'] });
+            setFormData(prev => ({ ...prev, category: newCategoryName.trim() }));
+            setIsAddCategoryOpen(false);
+            setNewCategoryName("");
+        } catch (error) {
+            console.error("Failed to add category", error);
+            alert("Failed to add category.");
+        } finally {
+            setIsAddingCategory(false);
+        }
+    };
+
+    const handleAddSociety = async () => {
+        if (!newSocietyName.trim()) return;
+        setIsAddingSociety(true);
+        try {
+            const newSoc = await createSociety({
+                name: newSocietyName.trim(),
+                description: "New society",
+                presidentName: "",
+                vicePresidentName: "",
+                convenerName: "",
+                university: user?.university || "Global",
+                createdBy: user?.uid
+            });
+            await queryClient.invalidateQueries({ queryKey: ['societies'] });
+            setSelectedSocieties([...selectedSocieties, newSoc.id]);
+            setIsAddSocietyOpen(false);
+            setNewSocietyName("");
+        } catch (error) {
+            console.error("Failed to add society", error);
+            alert("Failed to add society.");
+        } finally {
+            setIsAddingSociety(false);
         }
     };
 
@@ -162,16 +215,49 @@ export default function CreateEventPage() {
                         <div className="grid md:grid-cols-2 gap-6">
                             <div className="grid gap-2">
                                 <Label htmlFor="category">Category</Label>
-                                <Select onValueChange={(value) => setFormData({ ...formData, category: value })} required>
-                                    <SelectTrigger className="h-11">
-                                        <SelectValue placeholder="Select Category" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {categories?.map((cat: any) => (
-                                            <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <div className="flex gap-2">
+                                    <Select onValueChange={(value) => setFormData({ ...formData, category: value })} required>
+                                        <SelectTrigger className="h-11 flex-1">
+                                            <SelectValue placeholder="Select Category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {categories?.map((cat: any) => (
+                                                <SelectItem key={cat.id} value={cat.name}>{cat.name}</SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    <Dialog open={isAddCategoryOpen} onOpenChange={setIsAddCategoryOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button type="button" variant="outline" size="icon" className="h-11" title="Add New Category">
+                                                <Plus className="h-4 w-4" />
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>Add New Category</DialogTitle>
+                                                <DialogDescription>Create a new event category.</DialogDescription>
+                                            </DialogHeader>
+                                            <div className="space-y-4 py-4">
+                                                <div className="space-y-2">
+                                                    <Label>Category Name</Label>
+                                                    <Input
+                                                        value={newCategoryName}
+                                                        onChange={(e) => setNewCategoryName(e.target.value)}
+                                                        placeholder="e.g., Workshop"
+                                                    />
+                                                </div>
+                                                <Button
+                                                    onClick={handleAddCategory}
+                                                    disabled={!newCategoryName.trim() || isAddingCategory}
+                                                    className="w-full"
+                                                >
+                                                    {isAddingCategory && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                    Add Category
+                                                </Button>
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
                             </div>
                             <div className="grid gap-2">
                                 <Label htmlFor="university">University / Institution</Label>
@@ -367,7 +453,40 @@ export default function CreateEventPage() {
 
                         {eventType === "official" && (
                             <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-                                <Label>Select Hosting Society</Label>
+                                <div className="flex items-center justify-between">
+                                    <Label>Select Hosting Society</Label>
+                                    <Dialog open={isAddSocietyOpen} onOpenChange={setIsAddSocietyOpen}>
+                                        <DialogTrigger asChild>
+                                            <Button type="button" variant="outline" size="sm">
+                                                <Plus className="h-4 w-4 mr-2" /> Add Society
+                                            </Button>
+                                        </DialogTrigger>
+                                        <DialogContent>
+                                            <DialogHeader>
+                                                <DialogTitle>Add New Society</DialogTitle>
+                                                <DialogDescription>Create a new society/club.</DialogDescription>
+                                            </DialogHeader>
+                                            <div className="space-y-4 py-4">
+                                                <div className="space-y-2">
+                                                    <Label>Society Name</Label>
+                                                    <Input
+                                                        value={newSocietyName}
+                                                        onChange={(e) => setNewSocietyName(e.target.value)}
+                                                        placeholder="e.g., Tech Society"
+                                                    />
+                                                </div>
+                                                <Button
+                                                    onClick={handleAddSociety}
+                                                    disabled={!newSocietyName.trim() || isAddingSociety}
+                                                    className="w-full"
+                                                >
+                                                    {isAddingSociety && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                    Add Society
+                                                </Button>
+                                            </div>
+                                        </DialogContent>
+                                    </Dialog>
+                                </div>
                                 <div className="flex flex-wrap gap-2">
                                     {societies && societies.length > 0 ? societies.map((society: Society) => (
                                         <button
@@ -381,7 +500,7 @@ export default function CreateEventPage() {
                                         >
                                             {society.name}
                                         </button>
-                                    )) : <span className="text-sm text-slate-500">No societies found. Ask an admin to add them.</span>}
+                                    )) : <span className="text-sm text-slate-500">No societies found. Click 'Add Society' to create one.</span>}
                                 </div>
                             </div>
                         )}
