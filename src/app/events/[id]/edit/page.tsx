@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { getEventById, updateEvent, getSocieties } from "@/lib/services";
-import { uploadFile, getFilePreview } from "@/lib/storage";
+import { uploadFile, getFilePreview, deleteFile } from "@/lib/storage";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -94,7 +94,13 @@ export default function EditEventPage({ params }: { params: Promise<{ id: string
             if (file) {
                 imageId = await uploadFile(file);
             }
-            return updateEvent(id, { ...data, imageId });
+
+            await updateEvent(id, { ...data, imageId });
+
+            // If update successful and we uploaded a new file, delete the old one
+            if (file && event?.imageId) {
+                await deleteFile(event.imageId);
+            }
         },
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ['event', id] });

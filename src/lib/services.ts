@@ -1,7 +1,7 @@
 import { databases } from "./appwrite";
 import { ID, Query } from "appwrite";
 import { Event, Society } from "./types";
-import { getFileView } from "./storage";
+import { getFileView, deleteFile } from "./storage";
 
 const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
 const EVENTS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_EVENTS_COLLECTION_ID!;
@@ -133,6 +133,10 @@ export async function updateEvent(id: string, eventData: Partial<Event> & { soci
 
 export async function deleteEvent(id: string): Promise<void> {
     try {
+        const doc = await databases.getDocument(DATABASE_ID, EVENTS_COLLECTION_ID, id);
+        if (doc.imageId) {
+            await deleteFile(doc.imageId);
+        }
         await databases.deleteDocument(DATABASE_ID, EVENTS_COLLECTION_ID, id);
     } catch (error) {
         console.error("Error deleting event:", error);
@@ -282,7 +286,7 @@ export async function deleteSociety(id: string): Promise<void> {
 
         // Delete all associated events
         for (const event of eventsResponse.documents) {
-            await databases.deleteDocument(DATABASE_ID, EVENTS_COLLECTION_ID, event.$id);
+            await deleteEvent(event.$id);
         }
 
         // Then delete the society

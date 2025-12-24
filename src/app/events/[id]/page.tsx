@@ -5,7 +5,7 @@ import { getEventById, toggleRsvp } from "@/lib/services";
 import { getFileView } from "@/lib/storage";
 import { Event } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Calendar, MapPin, Loader2, Share2, Users, Clock, AlertCircle, Check, Eye } from "lucide-react";
+import { Calendar, MapPin, Loader2, Share2, Users, Clock, AlertCircle, Check, Eye, Link as LinkIcon } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useRouter } from "next/navigation";
@@ -16,12 +16,12 @@ import { useAuth } from "@/context/AuthContext";
 import { Trash2, Edit } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -33,7 +33,7 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
     const router = useRouter();
     const queryClient = useQueryClient();
     const [isDeleting, setIsDeleting] = useState(false);
-    
+
     // RSVP State
     const [isGoing, setIsGoing] = useState(false);
     const [isRsvpLoading, setIsRsvpLoading] = useState(false);
@@ -67,8 +67,8 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
             await queryClient.invalidateQueries({ queryKey: ['event', id] });
             await queryClient.invalidateQueries({ queryKey: ['events'] });
         } catch (error) {
-             setIsGoing(previousState);
-             console.error("RSVP Failure", error);
+            setIsGoing(previousState);
+            console.error("RSVP Failure", error);
         } finally {
             setIsRsvpLoading(false);
         }
@@ -275,7 +275,7 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
                                                         {event.attendeeIds.map((uid, i) => (
                                                             <div key={i} className="flex items-center gap-3 p-2 rounded bg-slate-50 dark:bg-slate-800">
                                                                 <div className="h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-bold text-indigo-700">
-                                                                    U{i+1}
+                                                                    U{i + 1}
                                                                 </div>
                                                                 <div>
                                                                     <p className="text-sm font-medium">User ID: {uid}</p>
@@ -295,34 +295,35 @@ export default function EventDetailsPage({ params }: { params: Promise<{ id: str
                                 </Dialog>
 
                                 <div className="pt-4 space-y-3">
-                                    {event.registrationLink ? (
+                                    {event.registrationLink && (
                                         <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-lg py-6 shadow-lg shadow-indigo-200 dark:shadow-none transition-all hover:scale-[1.02]" asChild>
                                             <a href={event.registrationLink} target="_blank" rel="noopener noreferrer">
-                                                Register Now
+                                                Register Now <LinkIcon className="ml-2 h-4 w-4" />
                                             </a>
                                         </Button>
-                                    ) : (
-                                        <Button 
-                                            className={cn(
-                                                "w-full text-lg py-6 transition-all hover:scale-[1.02]",
-                                                isGoing ? "bg-green-600 hover:bg-green-700 text-white" :  "bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
-                                            )} 
-                                            disabled={event.isPast || isOrganizer || isRsvpLoading}
-                                            onClick={handleRsvp}
-                                        >
-                                            {isRsvpLoading ? (
-                                                <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                                            ) : isOrganizer ? (
-                                                "Hosting Event"
-                                            ) : event.isPast ? (
-                                                "Event Ended"
-                                            ) : isGoing ? (
-                                                <><Check className="mr-2 h-5 w-5" /> Going</>
-                                            ) : (
-                                                "Count Me In"
-                                            )}
-                                        </Button>
                                     )}
+
+                                    <Button
+                                        className={cn(
+                                            "w-full text-lg py-6 transition-all hover:scale-[1.02]",
+                                            isGoing ? "bg-green-600 hover:bg-green-700 text-white" : "bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200",
+                                            event.registrationLink && !isGoing ? "border-2 border-slate-200 bg-transparent text-slate-900 hover:bg-slate-50 dark:border-slate-700 dark:text-white dark:hover:bg-slate-800" : ""
+                                        )}
+                                        disabled={event.isPast || isOrganizer || isRsvpLoading}
+                                        onClick={handleRsvp}
+                                    >
+                                        {isRsvpLoading ? (
+                                            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                                        ) : isOrganizer ? (
+                                            "Hosting Event"
+                                        ) : event.isPast ? (
+                                            "Event Ended"
+                                        ) : isGoing ? (
+                                            <><Check className="mr-2 h-5 w-5" /> Going (Click to remove)</>
+                                        ) : (
+                                            "Count Me In"
+                                        )}
+                                    </Button>
                                     <Button variant="outline" className="w-full border-slate-200 dark:border-slate-700">
                                         <Share2 className="mr-2 h-4 w-4" /> Share Event
                                     </Button>

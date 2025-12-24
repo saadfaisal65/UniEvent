@@ -24,3 +24,11 @@ export function getFilePreview(fileId: string): string {
 export function getFileView(fileId: string): string {
     return storage.getFileView(BUCKET_ID, fileId).toString();
 }
+
+export async function deleteFile(fileId: string): Promise<void> {
+    try {
+        await storage.deleteFile(BUCKET_ID, fileId);
+    } catch (error) {
+        console.error("Error deleting file:", error);
+    }
+}

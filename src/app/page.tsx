@@ -9,7 +9,9 @@ import { getEvents, getSocieties, getUniversities, getCategories } from "@/lib/s
 import { Event, Society } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
 
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -72,19 +74,45 @@ export default function Home() {
     <div className="space-y-12 animate-in fade-in duration-700 slide-in-from-bottom-4">
       {/* Hero / Search Section */}
       <section className="relative overflow-hidden rounded-3xl bg-indigo-600 px-6 py-16 text-center shadow-2xl md:px-12 md:py-24 dark:bg-indigo-900">
-        <div className="absolute inset-0 opacity-10 pattern-grid-lg text-white" />
+        <motion.div
+          className="absolute inset-0 opacity-10 pattern-grid-lg text-white"
+          animate={{
+            scale: [1, 1.1, 1],
+            rotate: [0, 2, 0],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+        />
         <div className="relative z-10 mx-auto max-w-4xl space-y-6">
-          <h1 className="text-4xl font-extrabold tracking-tight text-white md:text-7xl drop-shadow-sm">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="text-4xl font-extrabold tracking-tight text-white md:text-7xl drop-shadow-sm"
+          >
             Discover Campus <span className="text-indigo-200">Life</span>
-          </h1>
-          <p className="mx-auto max-w-2xl text-lg text-indigo-100 md:text-xl">
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="mx-auto max-w-2xl text-lg text-indigo-100 md:text-xl"
+          >
             From hackathons to music festivals – find your next experience here.
             Connect, compete, and celebrate with your community.
-          </p>
+          </motion.p>
 
-          <div className="mx-auto mt-8 flex flex-col gap-4 w-full max-w-3xl">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="mx-auto mt-8 flex flex-col gap-4 w-full max-w-3xl"
+          >
             <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 flex items-center rounded-full bg-white p-2 shadow-lg dark:bg-slate-950">
+              <div className="flex-1 flex items-center rounded-full bg-white p-2 shadow-lg dark:bg-slate-950 hover:shadow-xl transition-shadow duration-300">
                 <Search className="ml-3 h-5 w-5 text-slate-400" />
                 <Input
                   type="text"
@@ -94,7 +122,7 @@ export default function Home() {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="flex-1 flex items-center rounded-full bg-white p-2 shadow-lg dark:bg-slate-950">
+              <div className="flex-1 flex items-center rounded-full bg-white p-2 shadow-lg dark:bg-slate-950 hover:shadow-xl transition-shadow duration-300">
                 <GraduationCap className="ml-3 h-5 w-5 text-slate-400" />
                 <Select value={universitySearch === "" ? "all" : universitySearch} onValueChange={(val) => setUniversitySearch(val === "all" ? "" : val)}>
                   <SelectTrigger className="border-0 bg-transparent focus:ring-0 text-slate-900 dark:text-white">
@@ -111,7 +139,7 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1 flex items-center rounded-full bg-white px-4 py-2 shadow-lg dark:bg-slate-950 gap-2">
+              <div className="flex-1 flex items-center rounded-full bg-white px-4 py-2 shadow-lg dark:bg-slate-950 gap-2 hover:shadow-xl transition-shadow duration-300">
                 <CalendarIcon className="h-5 w-5 text-slate-400" />
                 <Input
                   type="date"
@@ -120,7 +148,7 @@ export default function Home() {
                   onChange={(e) => setDateFilter(e.target.value)}
                 />
               </div>
-              <div className="flex-1 flex items-center rounded-full bg-white px-4 py-1 shadow-lg dark:bg-slate-950">
+              <div className="flex-1 flex items-center rounded-full bg-white px-4 py-1 shadow-lg dark:bg-slate-950 hover:shadow-xl transition-shadow duration-300">
                 <Filter className="h-5 w-5 text-slate-400 mr-2" />
                 <Select value={societyFilter} onValueChange={setSocietyFilter}>
                   <SelectTrigger className="border-0 bg-transparent focus:ring-0 text-slate-900 dark:text-white">
@@ -135,29 +163,36 @@ export default function Home() {
                 </Select>
               </div>
               {(searchTerm || universitySearch || dateFilter || societyFilter !== "All" || selectedCategory !== "All") && (
-                <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white" onClick={clearFilters}>
-                  Clear
-                </Button>
+                <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }}>
+                  <Button variant="ghost" className="text-white hover:bg-white/20 hover:text-white h-full" onClick={clearFilters}>
+                    Clear
+                  </Button>
+                </motion.div>
               )}
             </div>
-          </div>
+          </motion.div>
         </div>
       </section>
 
       {/* Categories */}
       <div className="sticky top-20 z-40 -mx-4 overflow-x-auto bg-background/80 px-4 py-4 backdrop-blur-md md:mx-0 md:rounded-xl md:px-0">
         <div className="flex gap-2 min-w-max md:justify-center">
-          {categories.map((cat) => (
-            <button
+          {categories.map((cat, index) => (
+            <motion.button
               key={cat}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 + index * 0.05 }}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => setSelectedCategory(cat)}
-              className={`rounded-full px-6 py-2 text-sm font-medium transition-all ${selectedCategory === cat
+              className={`rounded-full px-6 py-2 text-sm font-medium transition-colors ${selectedCategory === cat
                 ? "bg-indigo-600 text-white shadow-md hover:bg-indigo-700"
                 : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                 }`}
             >
               {cat}
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>

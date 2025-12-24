@@ -9,6 +9,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
 import { toggleRsvp } from "@/lib/services";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 export interface EventProps {
     id: string;
@@ -28,6 +29,7 @@ export interface EventProps {
 export function EventCard({ event }: { event: EventProps }) {
     const { user } = useAuth();
     const router = useRouter();
+    const queryClient = useQueryClient();
     const dateObj = new Date(event.date);
     const formattedDate = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
@@ -66,6 +68,9 @@ export function EventCard({ event }: { event: EventProps }) {
 
         try {
             await toggleRsvp(event.id, user.uid, event.attendeeIds || []);
+            // Invalidate cache to sync with event details page
+            await queryClient.invalidateQueries({ queryKey: ['events'] });
+            await queryClient.invalidateQueries({ queryKey: ['event', event.id] });
         } catch (error) {
             // Revert on error
             setIsGoing(previousState);
