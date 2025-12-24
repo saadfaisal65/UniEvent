@@ -12,7 +12,6 @@ UniEvent is a modern, centralized platform designed to help university students 
 - **Admin Dashboard**: 
   - **Role-Based Access Control (RBAC)**: Secure admin-only areas.
   - **Request Flow**: Users can request admin access via the signup page or dashboard.
-  - **Management**: Approve/Reject admin requests, Edit Society details, Manage Categories.
 - **Event Creation**: Organizers can host new events with rich details and image uploads.
 - **Authentication**: Secure email/password login via Appwrite.
 
@@ -33,7 +32,7 @@ UniEvent is a modern, centralized platform designed to help university students 
 
 ### 1. Clone & Install
 ```bash
-git clone https://github.com/yourusername/unievent.git
+git clone https://github.com/saadfaisal65/unievent.git
 cd unievent
 npm install
 ```

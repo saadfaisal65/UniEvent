@@ -49,7 +49,6 @@ export default function AdminPage() {
         presidentName: "",
         vicePresidentName: "",
         convenerName: "",
-        logoUrl: "",
         university: user?.university || "Global"
     });
 
@@ -96,7 +95,7 @@ export default function AdminPage() {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['societies'] });
             setIsCreateOpen(false);
-            setNewSociety({ name: "", description: "", presidentName: "", vicePresidentName: "", convenerName: "", logoUrl: "", university: user?.university || "Global" });
+            setNewSociety({ name: "", description: "", presidentName: "", vicePresidentName: "", convenerName: "", university: user?.university || "Global" });
             setLogoFile(null);
         }
     });
@@ -125,15 +124,22 @@ export default function AdminPage() {
 
 
     const handleCreateSociety = async () => {
-        let logoUrl = "";
+        let logoUrl = undefined;
         if (logoFile) {
             logoUrl = await handleLogoUpload(logoFile);
         }
-        createSocietyMutation.mutate({
+
+        const payload: any = {
             ...newSociety,
-            logoUrl,
             createdBy: user?.uid
-        });
+        };
+
+        // Only include logoUrl if it has a value
+        if (logoUrl) {
+            payload.logoUrl = logoUrl;
+        }
+
+        createSocietyMutation.mutate(payload);
     };
 
     // -- Categories Logic --
@@ -241,30 +247,30 @@ export default function AdminPage() {
                                             <Label>President</Label>
                                             <Input value={newSociety.presidentName} onChange={(e) => setNewSociety({ ...newSociety, presidentName: e.target.value })} />
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label>Convener Name</Label>
-                                            <Input
-                                                value={newSociety.convenerName}
-                                                onChange={(e) => setNewSociety({ ...newSociety, convenerName: e.target.value })}
-                                                placeholder="Faculty Convener"
-                                            />
+                                        <div className="grid gap-2">
+                                            <Label>Vice President</Label>
+                                            <Input value={newSociety.vicePresidentName} onChange={(e) => setNewSociety({ ...newSociety, vicePresidentName: e.target.value })} />
                                         </div>
-                                        <div className="space-y-2">
-                                            <Label>University</Label>
-                                            <Select
-                                                value={newSociety.university}
-                                                onValueChange={(value) => setNewSociety({ ...newSociety, university: value })}
-                                            >
-                                                <SelectTrigger>
-                                                    <SelectValue placeholder="Select University" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    {universities?.map((uni: any) => (
-                                                        <SelectItem key={uni.id} value={uni.name}>{uni.name}</SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
-                                        </div>
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>Convener</Label>
+                                        <Input value={newSociety.convenerName} onChange={(e) => setNewSociety({ ...newSociety, convenerName: e.target.value })} placeholder="Faculty Convener" />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label>University</Label>
+                                        <Select
+                                            value={newSociety.university}
+                                            onValueChange={(value) => setNewSociety({ ...newSociety, university: value })}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select University" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {universities?.map((uni: any) => (
+                                                    <SelectItem key={uni.id} value={uni.name}>{uni.name}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
                                     </div>
                                     <Button onClick={handleCreateSociety} disabled={createSocietyMutation.isPending || uploadingLogo} className="w-full">
                                         {(createSocietyMutation.isPending || uploadingLogo) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

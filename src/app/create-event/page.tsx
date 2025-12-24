@@ -15,6 +15,8 @@ import { Loader2, Upload, Link as LinkIcon, Users, CalendarDays, Plus } from "lu
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Society } from "@/lib/types";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { storage } from "@/lib/appwrite";
+import { ID } from "appwrite";
 
 export default function CreateEventPage() {
     const { user, loading: authLoading } = useAuth();
@@ -67,6 +69,8 @@ export default function CreateEventPage() {
     }, [user]);
 
     const [isAddingSociety, setIsAddingSociety] = useState(false);
+    const [societyLogoFile, setSocietyLogoFile] = useState<File | null>(null);
+    const [uploadingSocietyLogo, setUploadingSocietyLogo] = useState(false);
 
     const queryClient = useQueryClient();
 
@@ -123,7 +127,16 @@ export default function CreateEventPage() {
         if (!newSocietyData.name.trim() || !newSocietyData.description.trim()) return;
         setIsAddingSociety(true);
         try {
-            const newSoc = await createSociety({
+            let logoUrl = undefined;
+            if (societyLogoFile) {
+                setUploadingSocietyLogo(true);
+                const BUCKET_ID = process.env.NEXT_PUBLIC_APPWRITE_BUCKET_ID || 'event-posters';
+                const response = await storage.createFile(BUCKET_ID, ID.unique(), societyLogoFile);
+                logoUrl = `${process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT}/storage/buckets/${BUCKET_ID}/files/${response.$id}/view?project=${process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID}`;
+                setUploadingSocietyLogo(false);
+            }
+
+            const payload: any = {
                 name: newSocietyData.name.trim(),
                 description: newSocietyData.description.trim(),
                 presidentName: newSocietyData.presidentName,
@@ -131,7 +144,13 @@ export default function CreateEventPage() {
                 convenerName: newSocietyData.convenerName,
                 university: newSocietyData.university,
                 createdBy: user?.uid
-            });
+            };
+
+            if (logoUrl) {
+                payload.logoUrl = logoUrl;
+            }
+
+            const newSoc = await createSociety(payload);
             await queryClient.invalidateQueries({ queryKey: ['societies'] });
             setSelectedSocieties([...selectedSocieties, newSoc.id]);
             setIsAddSocietyOpen(false);
@@ -143,11 +162,13 @@ export default function CreateEventPage() {
                 convenerName: "",
                 university: user?.university || "Global"
             });
+            setSocietyLogoFile(null);
         } catch (error) {
             console.error("Failed to add society", error);
             alert("Failed to add society.");
         } finally {
             setIsAddingSociety(false);
+            setUploadingSocietyLogo(false);
         }
     };
 
@@ -547,14 +568,26 @@ export default function CreateEventPage() {
                                                         </SelectContent>
                                                     </Select>
                                                 </div>
+                                                <div className="space-y-2">
+                                                    <Label>Society Logo (Optional)</Label>
+                                                    <Input
+                                                        type="file"
+                                                        accept="image/*"
+                                                        onChange={(e) => setSocietyLogoFile(e.target.files?.[0] || null)}
+                                                        className="cursor-pointer"
+                                                    />
+                                                    {societyLogoFile && (
+                                                        <p className="text-sm text-green-600">✓ {societyLogoFile.name}</p>
+                                                    )}
+                                                </div>
                                             </div>
                                             <Button
                                                 onClick={handleAddSociety}
-                                                disabled={!newSocietyData.name.trim() || !newSocietyData.description.trim() || isAddingSociety}
+                                                disabled={!newSocietyData.name.trim() || !newSocietyData.description.trim() || isAddingSociety || uploadingSocietyLogo}
                                                 className="w-full"
                                             >
-                                                {isAddingSociety && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                Add Society
+                                                {(isAddingSociety || uploadingSocietyLogo) && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                {uploadingSocietyLogo ? "Uploading Logo..." : "Add Society"}
                                             </Button>
                                         </DialogContent>
                                     </Dialog>
