@@ -1,0 +1,383 @@
+import { databases } from "./appwrite";
+import { ID, Query } from "appwrite";
+import { Event, Society } from "./types";
+import { getFileView } from "./storage";
+
+const DATABASE_ID = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID!;
+const EVENTS_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_EVENTS_COLLECTION_ID!;
+const SOCIETIES_COLLECTION_ID = process.env.NEXT_PUBLIC_APPWRITE_SOCIETIES_COLLECTION_ID || "societies";
+
+export async function getSocieties(): Promise<Society[]> {
+    try {
+        const response = await databases.listDocuments(
+            DATABASE_ID,
+            SOCIETIES_COLLECTION_ID
+        );
+        return response.documents.map((doc: any) => ({
+            id: doc.$id,
+            name: doc.name,
+            description: doc.description,
+            logoUrl: doc.logoUrl,
+            presidentName: doc.presidentName,
+            vicePresidentName: doc.vicePresidentName,
+            convenerName: doc.convenerName
+        }));
+    } catch (error) {
+        console.error("Error fetching societies:", error);
+        return [];
+    }
+}
+
+export async function getEvents(): Promise<Event[]> {
+    try {
+        const [eventsResponse, societies] = await Promise.all([
+            databases.listDocuments(
+                DATABASE_ID,
+                EVENTS_COLLECTION_ID,
+                [Query.orderAsc("date")]
+            ),
+            getSocieties()
+        ]);
+
+        const societyMap = new Map(societies.map(s => [s.id, s]));
+
+        return eventsResponse.documents.map((doc: any) => {
+            const eventSocieties = (doc.societies || []).map((id: string) => societyMap.get(id)).filter((s: any) => s !== undefined);
+
+            return {
+                id: doc.$id,
+                title: doc.title,
+                date: doc.date,
+                location: doc.location,
+                description: doc.description,
+                category: doc.category,
+                imageUrl: doc.imageUrl || (doc.imageId ? getFileView(doc.imageId) : undefined),
+                imageId: doc.imageId,
+                rsvps: doc.rsvps,
+                organizerId: doc.organizerId,
+                university: doc.university,
+                isPast: new Date(doc.date) < new Date(),
+                registrationLink: doc.registrationLink,
+                societies: eventSocieties,
+                attendeeIds: doc.attendeeIds || []
+            };
+        });
+    } catch (error) {
+        console.error("Error fetching events:", error);
+        return [];
+    }
+}
+
+export async function addEvent(eventData: Omit<Event, "id" | "rsvps" | "isPast"> & { societyIds?: string[] }): Promise<void> {
+    try {
+        const { societyIds, ...data } = eventData;
+        await databases.createDocument(
+            DATABASE_ID,
+            EVENTS_COLLECTION_ID,
+            ID.unique(),
+            {
+                ...data,
+                rsvps: 0,
+                societies: societyIds,
+                attendeeIds: []
+            }
+        );
+    } catch (error) {
+        console.error("Error adding event:", error);
+        throw error;
+    }
+}
+
+export async function updateEvent(id: string, eventData: Partial<Event> & { societyIds?: string[] }): Promise<void> {
+    try {
+        const { societyIds, ...data } = eventData;
+        const { id: _, isPast: __, rsvps: ___, societies: ____, ...cleanData } = data as any;
+
+        const payload: any = { ...cleanData };
+        if (societyIds) payload.societies = societyIds;
+
+        await databases.updateDocument(
+            DATABASE_ID,
+            EVENTS_COLLECTION_ID,
+            id,
+            payload
+        );
+    } catch (error) {
+        console.error("Error updating event:", error);
+        throw error;
+    }
+}
+
+export async function deleteEvent(id: string): Promise<void> {
+    try {
+        await databases.deleteDocument(DATABASE_ID, EVENTS_COLLECTION_ID, id);
+    } catch (error) {
+        console.error("Error deleting event:", error);
+        throw error;
+    }
+}
+
+export async function toggleRsvp(eventId: string, userId: string, currentAttendeeIds: string[]): Promise<string[]> {
+    try {
+        let newAttendeeIds = [...currentAttendeeIds];
+        if (newAttendeeIds.includes(userId)) {
+            newAttendeeIds = newAttendeeIds.filter(id => id !== userId);
+        } else {
+            newAttendeeIds.push(userId);
+        }
+
+        await databases.updateDocument(
+            DATABASE_ID,
+            EVENTS_COLLECTION_ID,
+            eventId,
+            {
+                attendeeIds: newAttendeeIds,
+                rsvps: newAttendeeIds.length
+            }
+        );
+        return newAttendeeIds;
+    } catch (error) {
+        console.error("Error toggling RSVP:", error);
+        throw error;
+    }
+}
+
+export async function getEventById(id: string): Promise<Event | null> {
+    try {
+        const [doc, societies] = await Promise.all([
+            databases.getDocument(DATABASE_ID, EVENTS_COLLECTION_ID, id),
+            getSocieties()
+        ]);
+
+        const societyMap = new Map(societies.map(s => [s.id, s]));
+        const eventSocieties = (doc.societies || []).map((sid: string) => societyMap.get(sid)).filter((s: any) => s !== undefined);
+
+        return {
+            id: doc.$id,
+            title: doc.title,
+            date: doc.date,
+            location: doc.location,
+            description: doc.description,
+            category: doc.category,
+            imageUrl: doc.imageUrl || (doc.imageId ? getFileView(doc.imageId) : undefined),
+            imageId: doc.imageId,
+            rsvps: doc.rsvps,
+            organizerId: doc.organizerId,
+            university: doc.university,
+            isPast: new Date(doc.date) < new Date(),
+            registrationLink: doc.registrationLink,
+            societies: eventSocieties,
+            attendeeIds: doc.attendeeIds || []
+        };
+    } catch (error) {
+        console.error("Error fetching event:", error);
+        return null;
+    }
+}
+
+
+export interface University {
+    id: string;
+    name: string;
+    location?: string;
+}
+
+const UNIV_COLLECTION_ID = "universities";
+
+export async function getUniversities(): Promise<University[]> {
+    try {
+        const response = await databases.listDocuments(
+            DATABASE_ID,
+            UNIV_COLLECTION_ID,
+            [Query.limit(100), Query.orderAsc("name")]
+        );
+        return response.documents.map((doc: any) => ({
+            id: doc.$id,
+            name: doc.name,
+            location: doc.location
+        }));
+    } catch (error) {
+        // If collection doesn't exist yet (first run race condition), return default Global
+        console.warn("Error fetching universities (might be initializing):", error);
+        return [{ id: "global", name: "Global" }];
+    }
+}
+
+
+export interface Category {
+    id: string;
+    name: string;
+}
+
+const CAT_COLLECTION_ID = "categories";
+
+export async function getCategories(): Promise<Category[]> {
+    try {
+        const response = await databases.listDocuments(
+            DATABASE_ID,
+            CAT_COLLECTION_ID,
+            [Query.limit(100), Query.orderAsc("name")]
+        );
+        return response.documents.map((doc: any) => ({
+            id: doc.$id,
+            name: doc.name
+        }));
+    } catch (error) {
+        console.warn("Error fetching categories:", error);
+        // Fallback
+        return ["Tech", "Music", "Career", "Social", "Arts", "Sports", "Workshops", "Hackathons"].map(name => ({ id: name.toLowerCase(), name }));
+    }
+}
+
+export async function createCategory(name: string): Promise<Category> {
+    const doc = await databases.createDocument(DATABASE_ID, CAT_COLLECTION_ID, ID.unique(), { name });
+    return { id: doc.$id, name: doc.name };
+}
+
+export async function deleteCategory(id: string): Promise<void> {
+    await databases.deleteDocument(DATABASE_ID, CAT_COLLECTION_ID, id);
+}
+
+export async function updateSociety(id: string, data: Partial<Society>): Promise<void> {
+    try {
+        const { id: _, ...payload } = data as any;
+        await databases.updateDocument(DATABASE_ID, SOCIETIES_COLLECTION_ID, id, payload);
+    } catch (error) {
+        console.error("Error updating society:", error);
+        throw error;
+    }
+}
+
+export async function createUniversity(name: string): Promise<University> {
+    try {
+        const doc = await databases.createDocument(
+            DATABASE_ID,
+            UNIV_COLLECTION_ID,
+            ID.unique(),
+            { name }
+        );
+        return {
+            id: doc.$id,
+            name: doc.name,
+            location: doc.location
+        };
+    } catch (error) {
+        console.error("Error creating university:", error);
+        throw error;
+    }
+}
+
+// --- Admin & Roles Logic ---
+
+const USERS_COLL_ID = 'users_roles';
+const REQ_COLL_ID = 'admin_requests';
+
+export interface UserRole {
+    id: string; // Document ID
+    userId: string;
+    email: string;
+    isAdmin: boolean;
+}
+
+export interface AdminRequest {
+    id: string;
+    userId: string;
+    userName: string;
+    email: string;
+    reason: string;
+    status: 'pending' | 'approved' | 'rejected';
+}
+
+export async function ensureUserProfile(userId: string, email: string): Promise<UserRole | null> {
+    try {
+        const response = await databases.listDocuments(DATABASE_ID, USERS_COLL_ID, [Query.equal('userId', userId)]);
+        if (response.documents.length > 0) {
+            const doc = response.documents[0];
+            return {
+                id: doc.$id,
+                userId: doc.userId,
+                email: doc.email,
+                isAdmin: doc.isAdmin
+            };
+        } else {
+            // Create New
+            const doc = await databases.createDocument(DATABASE_ID, USERS_COLL_ID, ID.unique(), {
+                userId, email, isAdmin: false
+            });
+            return {
+                id: doc.$id,
+                userId: doc.userId,
+                email: doc.email,
+                isAdmin: doc.isAdmin
+            };
+        }
+    } catch (e) {
+        console.error("Error ensuring user profile", e);
+        return null; // Fail safe
+    }
+}
+
+export async function getUserRole(userId: string): Promise<UserRole | null> {
+    try {
+        const response = await databases.listDocuments(DATABASE_ID, USERS_COLL_ID, [Query.equal('userId', userId)]);
+        if (response.documents.length > 0) {
+            const doc = response.documents[0];
+            return {
+                id: doc.$id,
+                userId: doc.userId,
+                email: doc.email,
+                isAdmin: doc.isAdmin
+            };
+        }
+        return null;
+    } catch (e) {
+        return null;
+    }
+}
+
+export async function submitAdminRequest(userId: string, userName: string, email: string, reason: string, secretCode?: string): Promise<void> {
+    // Secret backdoor for testing
+    if (secretCode === "admin123") {
+        // Upgrade immediately
+        const roleDoc = await getUserRole(userId);
+        if (roleDoc) {
+            await databases.updateDocument(DATABASE_ID, USERS_COLL_ID, roleDoc.id, { isAdmin: true });
+        }
+        return;
+    }
+
+    // Check if pending request exists
+    const existing = await databases.listDocuments(DATABASE_ID, REQ_COLL_ID, [Query.equal('userId', userId), Query.equal('status', 'pending')]);
+    if (existing.total > 0) throw new Error("Request already pending");
+
+    await databases.createDocument(DATABASE_ID, REQ_COLL_ID, ID.unique(), {
+        userId, userName, email, reason, status: 'pending'
+    });
+}
+
+export async function getAdminRequests(): Promise<AdminRequest[]> {
+    const response = await databases.listDocuments(DATABASE_ID, REQ_COLL_ID, [Query.equal('status', 'pending')]);
+    return response.documents.map((doc: any) => ({
+        id: doc.$id,
+        userId: doc.userId,
+        userName: doc.userName,
+        email: doc.email,
+        reason: doc.reason,
+        status: doc.status
+    }));
+}
+
+export async function approveAdminRequest(requestId: string, userId: string): Promise<void> {
+    // 1. Update Request Status
+    await databases.updateDocument(DATABASE_ID, REQ_COLL_ID, requestId, { status: 'approved' });
+
+    // 2. Update User Role
+    const roleDoc = await getUserRole(userId);
+    if (roleDoc) {
+        await databases.updateDocument(DATABASE_ID, USERS_COLL_ID, roleDoc.id, { isAdmin: true });
+    }
+}
+
+export async function rejectAdminRequest(requestId: string): Promise<void> {
+    await databases.updateDocument(DATABASE_ID, REQ_COLL_ID, requestId, { status: 'rejected' });
+}
