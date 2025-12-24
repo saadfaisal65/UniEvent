@@ -26,14 +26,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const checkSession = async () => {
         try {
             const session = await account.get();
-            const userProfile = await ensureUserProfile(session.$id, session.email);
+            
+            // Try to get user profile, but don't fail if it errors
+            let isAdmin = true; // Default to true for all users
+            try {
+                const userProfile = await ensureUserProfile(session.$id, session.email);
+                isAdmin = userProfile?.isAdmin ?? true;
+            } catch (profileError) {
+                console.warn("Could not fetch user profile, using defaults:", profileError);
+                // Continue with default isAdmin = true
+            }
 
             setUser({
                 uid: session.$id,
                 email: session.email,
                 displayName: session.name,
                 photoURL: null,
-                isAdmin: userProfile?.isAdmin || false
+                isAdmin
             });
         } catch (error) {
             setUser(null);

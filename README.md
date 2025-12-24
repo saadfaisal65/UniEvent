@@ -67,12 +67,15 @@ npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000).
 
-## 🔐 Admin Access
+## 🔐 User Access & Permissions
 
-By default, new users are **Regular Students**. To become an **Admin**:
-1.  **Sign Up**: Check the *"Request Admin/Organizer Access"* box during signup.
-2.  **Existing Admins**: Can approve requests from the **Admin Dashboard > Access Requests** tab.
-3.  **Dev/Testing**: Use the magic code `admin123` in the request form for instant access (Development only).
+**All registered users have dashboard access** to create and manage their own content:
+*   **Create Societies**: Any user can create a new society/club.
+*   **Edit Own Content**: Users can only edit societies they created.
+*   **Create Events**: All users can host events.
+*   **Manage Categories**: Add or remove event categories (shared resource).
+
+This open model encourages community participation while maintaining ownership controls.
 
 ## 📂 Project Structure
 

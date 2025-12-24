@@ -10,16 +10,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import { submitAdminRequest } from "@/lib/services";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 
 export default function SignupPage() {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [isAdminRequest, setIsAdminRequest] = useState(false);
-    const [adminReason, setAdminReason] = useState("");
+
 
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
@@ -38,10 +35,7 @@ export default function SignupPage() {
             // 2. Auto Login (Create Session)
             await account.createEmailPasswordSession(email, password);
 
-            // 3. Admin Request (if selected)
-            if (isAdminRequest) {
-                await submitAdminRequest(newAccount.$id, name, email, adminReason || "New account request");
-            }
+            // 3. Update Context
 
             // 4. Update Context
             await checkSession();
@@ -100,32 +94,7 @@ export default function SignupPage() {
                             />
                         </div>
 
-                        <div className="border rounded-lg p-4 bg-slate-50 dark:bg-slate-900 space-y-3">
-                            <div className="flex items-center space-x-2">
-                                <input
-                                    type="checkbox"
-                                    id="adminReq"
-                                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                    checked={isAdminRequest}
-                                    onChange={(e) => setIsAdminRequest(e.target.checked)}
-                                />
-                                <Label htmlFor="adminReq" className="cursor-pointer font-medium">Request Admin/Organizer Access</Label>
-                            </div>
 
-                            {isAdminRequest && (
-                                <div className="space-y-2 animate-in slide-in-from-top-2">
-                                    <Label htmlFor="reason" className="text-xs">Reason / Society Name</Label>
-                                    <Textarea
-                                        id="reason"
-                                        placeholder="I am the President of the Tech Society..."
-                                        value={adminReason}
-                                        onChange={(e) => setAdminReason(e.target.value)}
-                                        className="h-20 text-sm"
-                                        required={isAdminRequest}
-                                    />
-                                </div>
-                            )}
-                        </div>
 
                         {error && <p className="text-sm text-red-500">{error}</p>}
                         <Button className="w-full bg-indigo-600 hover:bg-indigo-700" type="submit" disabled={loading}>

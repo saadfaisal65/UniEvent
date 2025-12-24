@@ -84,50 +84,57 @@ async function main() {
     } catch(e) { console.error('Error during cleanup:', e.message); }
 
     // 2. Societies Collection
-    await createCollection(dbId, SOCIETIES_COLL_ID, 'Societies', [
-        { type: 'string', key: 'name', size: 128, required: true },
-        { type: 'string', key: 'description', size: 5000, required: false },
-        { type: 'url', key: 'logoUrl', required: false },
-        { type: 'string', key: 'presidentName', size: 128, required: true },
-        { type: 'string', key: 'vicePresidentName', size: 128, required: true },
-        { type: 'string', key: 'convenerName', size: 128, required: true },
-    ]);
-    
-    // Seed Societies (since we wiped them)
-    const socCount = await databases.listDocuments(dbId, SOCIETIES_COLL_ID);
-    if (socCount.total === 0) {
-        console.log('🌱 Seeding Societies...');
-        const societies = [
-            { name: "Tech Society", description: "For technology enthusiasts.", presidentName: "Alice Tech", vicePresidentName: "Bob Code", convenerName: "Dr. Smith" },
-            { name: "Music Society", description: "For musicians and listeners.", presidentName: "Charlie Tune", vicePresidentName: "Diana Song", convenerName: "Prof. Audios" },
-            { name: "Art Society", description: "Creative arts and design.", presidentName: "Eve Paint", vicePresidentName: "Frank Sketch", convenerName: "Ms. Palette" }
-        ];
-        for (const s of societies) {
-             await databases.createDocument(dbId, SOCIETIES_COLL_ID, ID.unique(), s);
+    try {
+        await createCollection(dbId, SOCIETIES_COLL_ID, 'Societies', [
+            { type: 'string', key: 'name', size: 256, required: true },
+            { type: 'string', key: 'description', size: 5000, required: true },
+            { type: 'url', key: 'logoUrl', required: false },
+            { type: 'string', key: 'presidentName', size: 256, required: false },
+            { type: 'string', key: 'vicePresidentName', size: 256, required: false },
+            { type: 'string', key: 'convenerName', size: 256, required: false },
+            { type: 'string', key: 'createdBy', size: 256, required: false },
+        ]);
+        
+        // Seed Societies
+        const records = await databases.listDocuments(dbId, SOCIETIES_COLL_ID);
+        if (records.total === 0) {
+            console.log('🌱 Seeding Societies...');
+            const societies = [
+                { name: "Tech Society", description: "Innovating the future.", presidentName: "Alice", vicePresidentName: "Bob", convenerName: "Dr. Smith", createdBy: "system" },
+                { name: "Music Club", description: "Rhythms of campus.", presidentName: "Charlie", vicePresidentName: "David", convenerName: "Prof. Jones", createdBy: "system" },
+                { name: "Debating Union", description: "Voices that matter.", presidentName: "Eve", vicePresidentName: "Frank", convenerName: "Mrs. Wilson", createdBy: "system" }
+            ];
+            for (const s of societies) {
+                await databases.createDocument(dbId, SOCIETIES_COLL_ID, ID.unique(), s);
+            }
         }
+    } catch (e) {
+        console.error('Error with Societies:', e.message);
     }
 
     // 3. Events Collection
-    await createCollection(dbId, EVENTS_COLL_ID, 'Events', [
-        { type: 'string', key: 'title', size: 128, required: true },
-        { type: 'datetime', key: 'date', required: true },
-        { type: 'string', key: 'location', size: 256, required: true },
-        { type: 'string', key: 'description', size: 5000, required: true },
-        { type: 'string', key: 'category', size: 50, required: true },
-        { type: 'url', key: 'imageUrl', required: false },
-        { type: 'string', key: 'imageId', size: 256, required: false },
-        { type: 'integer', key: 'rsvps', required: false, default: 0 },
-        { type: 'string', key: 'organizerId', size: 256, required: true },
-        { type: 'url', key: 'registrationLink', required: false },
-        { type: 'string', key: 'societies', size: 256, required: false, array: true },
-        { type: 'string', key: 'university', size: 128, required: false, default: "Global" },
-        { type: 'string', key: 'attendeeIds', size: 256, required: false, array: true },
-    ]);
-    
-    // Add Indexes for Events
-    await createIndex(dbId, EVENTS_COLL_ID, 'date_idx', 'key', ['date'], ['ASC']);
-    await createIndex(dbId, EVENTS_COLL_ID, 'university_idx', 'key', ['university'], ['ASC']);
-    await createIndex(dbId, EVENTS_COLL_ID, 'category_idx', 'key', ['category'], ['ASC']);
+    try {
+        await createCollection(dbId, EVENTS_COLL_ID, 'Events', [
+            { type: 'string', key: 'title', size: 256, required: true },
+            { type: 'datetime', key: 'date', required: true },
+            { type: 'string', key: 'location', size: 256, required: true },
+            { type: 'string', key: 'description', size: 5000, required: true },
+            { type: 'string', key: 'category', size: 50, required: true },
+            { type: 'url', key: 'imageUrl', required: false },
+            { type: 'string', key: 'imageId', size: 256, required: false },
+            { type: 'integer', key: 'rsvps', required: false, default: 0 },
+            { type: 'string', key: 'organizerId', size: 256, required: true },
+            { type: 'url', key: 'registrationLink', required: false },
+            { type: 'string', key: 'societies', size: 256, required: false, array: true },
+            { type: 'string', key: 'university', size: 128, required: false, default: "Global" },
+            { type: 'string', key: 'attendeeIds', size: 256, required: false, array: true },
+        ]);
+        
+        // Add Indexes for Events
+        await createIndex(dbId, EVENTS_COLL_ID, 'date_idx', 'key', ['date'], ['ASC']);
+        await createIndex(dbId, EVENTS_COLL_ID, 'university_idx', 'key', ['university'], ['ASC']);
+        await createIndex(dbId, EVENTS_COLL_ID, 'category_idx', 'key', ['category'], ['ASC']);
+    } catch (e) { console.error('Error with Events:', e.message); }
 
 
     // 4. Storage Bucket

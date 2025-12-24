@@ -15,6 +15,7 @@ export interface Society {
     vicePresidentName: string;
     convenerName: string;
     university?: string;
+    createdBy?: string;
 }
 
 export interface Event {

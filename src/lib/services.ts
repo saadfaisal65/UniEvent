@@ -20,11 +20,21 @@ export async function getSocieties(): Promise<Society[]> {
             logoUrl: doc.logoUrl,
             presidentName: doc.presidentName,
             vicePresidentName: doc.vicePresidentName,
-            convenerName: doc.convenerName
+            convenerName: doc.convenerName,
+            createdBy: doc.createdBy
         }));
     } catch (error) {
         console.error("Error fetching societies:", error);
         return [];
+    }
+}
+
+export async function createSociety(data: Omit<Society, "id">): Promise<void> {
+    try {
+        await databases.createDocument(DATABASE_ID, SOCIETIES_COLLECTION_ID, ID.unique(), data);
+    } catch (error) {
+        console.error("Error adding society:", error);
+        throw error;
     }
 }
 
@@ -302,7 +312,7 @@ export async function ensureUserProfile(userId: string, email: string): Promise<
         } else {
             // Create New
             const doc = await databases.createDocument(DATABASE_ID, USERS_COLL_ID, ID.unique(), {
-                userId, email, isAdmin: false
+                userId, email, isAdmin: true
             });
             return {
                 id: doc.$id,

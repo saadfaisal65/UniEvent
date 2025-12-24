@@ -99,15 +99,9 @@ export function Navbar() {
                                     <Users className="mr-2 h-4 w-4" /> Browse Societies
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
-                                {user.isAdmin ? (
-                                    <DropdownMenuItem onClick={() => router.push('/admin')}>
-                                        <ShieldCheck className="mr-2 h-4 w-4" /> Admin Dashboard
-                                    </DropdownMenuItem>
-                                ) : (
-                                    <DropdownMenuItem onClick={() => router.push('/admin')}>
-                                        <ShieldCheck className="mr-2 h-4 w-4" /> Become an Admin
-                                    </DropdownMenuItem>
-                                )}
+                                <DropdownMenuItem onClick={() => router.push('/admin')}>
+                                    <ShieldCheck className="mr-2 h-4 w-4" /> Dashboard
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={handleLogout} className="text-red-600">
                                     <LogOut className="mr-2 h-4 w-4" /> Log out
