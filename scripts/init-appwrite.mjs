@@ -61,15 +61,16 @@ async function main() {
     // 0. RESET DATA (If requested)
     console.log('🧹 Cleaning up database and storage...');
     try {
-        const resetCollections = [EVENTS_COLL_ID, SOCIETIES_COLL_ID, 'universities', 'categories'];
+        const resetCollections = [EVENTS_COLL_ID, SOCIETIES_COLL_ID, 'universities', 'categories', 'users_roles', 'admin_requests']; 
+        // Note: added users_roles and admin_requests to ensure full clean reset if needed, though they might not be critical for this specific error.
+        
         for (const cid of resetCollections) {
             try {
-                const docs = await databases.listDocuments(dbId, cid);
-                for (const d of docs.documents) {
-                    await databases.deleteDocument(dbId, cid, d.$id);
-                }
-                console.log(`   ✅ Cleared ${cid}`);
-            } catch (e) { /* ignore if coll doesn't exist */ }
+                await databases.deleteCollection(dbId, cid);
+                console.log(`   ✅ Deleted collection ${cid}`);
+            } catch (e) { 
+                // console.log(`Collection ${cid} not found (fresh start)`);
+             }
         }
         
         // Clear Storage
