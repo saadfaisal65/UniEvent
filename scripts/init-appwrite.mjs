@@ -125,7 +125,7 @@ async function main() {
             { type: 'string', key: 'imageId', size: 256, required: false },
             { type: 'integer', key: 'rsvps', required: false, default: 0 },
             { type: 'string', key: 'organizerId', size: 256, required: true },
-            { type: 'url', key: 'registrationLink', required: false },
+            { type: 'string', key: 'registrationLink', size: 512, required: false },
             { type: 'string', key: 'societies', size: 256, required: false, array: true },
             { type: 'string', key: 'university', size: 128, required: false, default: "Global" },
             { type: 'string', key: 'attendeeIds', size: 256, required: false, array: true },

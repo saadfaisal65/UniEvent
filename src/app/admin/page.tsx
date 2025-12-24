@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/context/AuthContext";
 import {
-    getSocieties, getCategories, updateSociety, createCategory, deleteCategory, createSociety, Category
+    getSocieties, getCategories, updateSociety, createCategory, deleteCategory, createSociety, deleteSociety, Category
 } from "@/lib/services";
 import { Society } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -102,6 +102,14 @@ export default function AdminPage() {
             updateSocietyMutation.mutate({ ...editingSociety, logoUrl });
         }
     };
+
+    const deleteSocietyMutation = useMutation({
+        mutationFn: deleteSociety,
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['societies'] });
+        }
+    });
+
 
     const handleCreateSociety = async () => {
         let logoUrl = "";
@@ -250,9 +258,22 @@ export default function AdminPage() {
                                             <div className="flex justify-between items-start">
                                                 <CardTitle className="text-lg">{soc.name}</CardTitle>
                                                 {soc.createdBy === user?.uid && (
-                                                    <Button variant="ghost" size="icon" onClick={() => handleEditSociety(soc)}>
-                                                        <Edit className="h-4 w-4 text-slate-500" />
-                                                    </Button>
+                                                    <div className="flex gap-1">
+                                                        <Button variant="ghost" size="icon" onClick={() => handleEditSociety(soc)}>
+                                                            <Edit className="h-4 w-4 text-slate-500" />
+                                                        </Button>
+                                                        <Button 
+                                                            variant="ghost" 
+                                                            size="icon" 
+                                                            onClick={() => {
+                                                                if (confirm(`Delete "${soc.name}"? This will also delete all associated events.`)) {
+                                                                    deleteSocietyMutation.mutate(soc.id);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Trash2 className="h-4 w-4 text-red-500" />
+                                                        </Button>
+                                                    </div>
                                                 )}
                                             </div>
                                             <CardDescription className="line-clamp-2 min-h-[40px]">{soc.description}</CardDescription>

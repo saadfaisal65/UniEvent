@@ -271,6 +271,29 @@ export async function updateSociety(id: string, data: Partial<Society>): Promise
     }
 }
 
+export async function deleteSociety(id: string): Promise<void> {
+    try {
+        // First, get all events associated with this society
+        const eventsResponse = await databases.listDocuments(
+            DATABASE_ID,
+            EVENTS_COLLECTION_ID,
+            [Query.contains('societies', id)]
+        );
+
+        // Delete all associated events
+        for (const event of eventsResponse.documents) {
+            await databases.deleteDocument(DATABASE_ID, EVENTS_COLLECTION_ID, event.$id);
+        }
+
+        // Then delete the society
+        await databases.deleteDocument(DATABASE_ID, SOCIETIES_COLLECTION_ID, id);
+    } catch (error) {
+        console.error("Error deleting society:", error);
+        throw error;
+    }
+}
+
+
 export async function createUniversity(name: string): Promise<University> {
     try {
         const doc = await databases.createDocument(
